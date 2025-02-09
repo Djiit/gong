@@ -1,0 +1,37 @@
+name: Security Checks
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Report
+        uses: bearer/bearer-action@v2
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          output-file: "${{ github.event.repository.name }}-sbom.spdx.json"
+      - name: Scan SBOM
+        uses: anchore/scan-action@v3
+        id: scan
+        with:
+          sbom: "${{ github.event.repository.name }}-sbom.spdx.json"
+          severity-cutoff: critical
+      - name: Upload Anchore scan SARIF report
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}

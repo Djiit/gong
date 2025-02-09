@@ -1,0 +1,52 @@
+version: 2
+project_name: pingrequest
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+    binary: pingrequest
+    ignore:
+      - goos: linux
+        goarch: arm64
+    flags:
+      - -tags=release
+    ldflags:
+      - -s -w -X cmd.Version={{.Version}}
+release:
+  prerelease: auto
+  mode: keep-existing
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}Darwin_
+      {{- else if eq .Os "linux" }}Linux_
+      {{- else }}{{ .Os }}_{{ end }}
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    format: tar.gz
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+changelog:
+  disable: true
+sboms:
+  - artifacts: archive
+upx:
+  - enabled: true
+kos:
+  - tags:
+      - "{{.Version}}"
+      - latest
+    platforms:
+      - linux/amd64
+      - darwin/amd64
+      - darwin/arm64
+    bare: true

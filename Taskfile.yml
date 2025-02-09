@@ -1,0 +1,21 @@
+version: "3"
+
+tasks:
+  build:
+    aliases:
+      - default
+    desc: Build the project
+    cmds:
+      - go build {{.CLI_ARGS}}
+  dev:
+    desc: Run the project
+    cmds:
+      - go run main.go {{.CLI_ARGS}}
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./... {{.CLI_ARGS}}
+  lint:
+    desc: Run linters
+    cmds:
+      - golangci-lint run ./... {{.CLI_ARGS}}

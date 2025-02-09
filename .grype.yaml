@@ -1,0 +1,5 @@
+name: pingrequest
+
+match:
+  golang:
+    using-cpes: true
