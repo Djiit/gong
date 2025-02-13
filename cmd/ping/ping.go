@@ -8,16 +8,18 @@ import (
 	"strings"
 
 	"github.com/Djiit/pingrequest/internal/githubclient"
+	"github.com/Djiit/pingrequest/internal/integrations"
 	"github.com/google/go-github/github"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	repository string
-	repoOwner  string
-	repoName   string
-	pr         string
+	repository  string
+	repoOwner   string
+	repoName    string
+	pr          string
+	integration string
 )
 
 // pingCmd represents the ping command
@@ -36,6 +38,11 @@ var PingCmd = &cobra.Command{
 			log.Fatal("PR number must be specified")
 		}
 
+		integration := viper.GetString("integration")
+		if integration == "" {
+			log.Fatal("Integration must be specified")
+		}
+
 		repoParts := strings.Split(repository, "/")
 		if len(repoParts) != 2 {
 			log.Fatalf("Invalid repository format. Expected owner/repo, got %s", repository)
@@ -51,9 +58,20 @@ var PingCmd = &cobra.Command{
 
 		if len(reviewers) == 0 {
 			fmt.Printf("No reviewers found for PR #%s.\n", pr)
-		} else {
-			fmt.Printf("Review requests for PR #%s: %v\n", pr, reviewers)
+			return
 		}
+
+		ctx := context.WithValue(cmd.Context(), "reviewers", reviewers)
+		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
+		ctx = context.WithValue(ctx, "repoName", repoName)
+		ctx = context.WithValue(ctx, "pr", pr)
+
+		integrationFunc, ok := integrations.Integrations[integration]
+		if !ok {
+			log.Fatalf("Unknown integration: %s", integration)
+		}
+
+		integrationFunc.Run(ctx)
 	},
 }
 
@@ -83,7 +101,9 @@ func getPRReviewRequests(client *github.Client, owner, repo string, prNumber str
 }
 
 func init() {
-	PingCmd.PersistentFlags().StringVar(&repository, "repository", repository, "Repository in the format owner/repo")
+	PingCmd.PersistentFlags().StringVarP(&repository, "repository", "r", repository, "Repository in the format owner/repo")
 	PingCmd.PersistentFlags().StringVar(&pr, "pr", pr, "Pull Request number")
+	PingCmd.PersistentFlags().StringVarP(&integration, "integration", "i", integration, "Integration to use for pinging reviewers (e.g., stdout, comment)")
 	viper.BindPFlags(PingCmd.PersistentFlags())
+	viper.SetDefault("integration", "stdout")
 }

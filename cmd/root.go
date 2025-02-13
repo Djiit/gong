@@ -62,9 +62,9 @@ func initConfig() {
 		viper.SetConfigName(".ping-request")
 	}
 
-	viper.AutomaticEnv()                                   // read in environment variables that match
-	viper.SetEnvPrefix("PING_REQUEST")                     // prefix environment variables with PING_REQUEST
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_")) // replace dashes with underscores
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("PING_REQUEST")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
