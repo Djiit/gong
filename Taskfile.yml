@@ -19,3 +19,7 @@ tasks:
     desc: Run linters
     cmds:
       - golangci-lint run ./... {{.CLI_ARGS}}
+  docker:
+    desc: Create a docker image using ko
+    cmds:
+      - ko build main.go --push=false {{.CLI_ARGS}}

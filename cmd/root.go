@@ -36,7 +36,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ping-request.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.ping-request.yaml)")
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub token")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display more verbose output in console output. (default: false)")
 	rootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "Run in dry-run mode. (default: false)")

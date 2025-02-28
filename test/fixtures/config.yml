@@ -1,0 +1,3 @@
+repository: Djiit/pingrequest
+delay: 0
+integration: stdout

@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/Djiit/pingrequest/internal/githubclient"
 	"github.com/Djiit/pingrequest/internal/integrations"
-	"github.com/google/go-github/github"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -51,7 +49,7 @@ var PingCmd = &cobra.Command{
 		repoName = repoParts[1]
 
 		client := githubclient.NewClient(viper.GetString("github-token"))
-		reviewers, err := getPRReviewRequests(client, repoOwner, repoName, pr)
+		reviewers, err := githubclient.GetReviewRequests(client, repoOwner, repoName, pr)
 		if err != nil {
 			log.Fatalf("Error retrieving review requests: %v", err)
 		}
@@ -73,31 +71,6 @@ var PingCmd = &cobra.Command{
 
 		integrationFunc.Run(ctx)
 	},
-}
-
-func getPRReviewRequests(client *github.Client, owner, repo string, prNumber string) ([]string, error) {
-	ctx := context.Background()
-
-	prNum, err := strconv.Atoi(prNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	reviewRequests, _, err := client.PullRequests.ListReviewers(ctx, owner, repo, prNum, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var reviewers []string
-	for _, user := range reviewRequests.Users {
-		reviewers = append(reviewers, *user.Login)
-	}
-
-	for _, team := range reviewRequests.Teams {
-		reviewers = append(reviewers, *team.Name)
-	}
-
-	return reviewers, nil
 }
 
 func init() {

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Djiit/pingrequest/internal/githubclient"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v69/github"
 	"github.com/spf13/viper"
 )
 
