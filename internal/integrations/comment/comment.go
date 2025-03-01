@@ -16,6 +16,12 @@ func Run(ctx context.Context) {
 	repoOwner := ctx.Value("repoOwner").(string)
 	repoName := ctx.Value("repoName").(string)
 	prNumber := ctx.Value("pr").(string)
+	isDryRun := ctx.Value("dry-run").(bool)
+
+	if isDryRun {
+		fmt.Println("[DRY RUN] Would output reviewer information in a comment")
+		return
+	}
 
 	client := githubclient.NewClient(viper.GetString("github-token"))
 

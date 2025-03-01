@@ -2,7 +2,6 @@ package githubclient
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -21,11 +20,12 @@ func NewClient(githubToken string) *github.Client {
 }
 
 type ReviewRequest struct {
-	From string
-	On   time.Time
+	From   string
+	On     time.Time
+	IsTeam bool
 }
 
-func GetReviewRequests(client *github.Client, owner, repo string, prNumber string) ([]string, error) {
+func GetReviewRequests(client *github.Client, owner, repo string, prNumber string) ([]ReviewRequest, error) {
 	ctx := context.Background()
 
 	prNum, err := strconv.Atoi(prNumber)
@@ -38,33 +38,60 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 		return nil, err
 	}
 
-	var reviewers []string
-	for _, user := range reviewRequests.Users {
-		reviewers = append(reviewers, *user.Login)
-	}
+	// Create a map to store reviewer logins and their request times
+	reviewerTimestamps := make(map[string]time.Time)
+	teamTimestamps := make(map[string]time.Time)
 
-	for _, team := range reviewRequests.Teams {
-		reviewers = append(reviewers, *team.Name)
-	}
-
+	// Fetch the timeline to get the request timestamps
 	timeline, _, err := client.Issues.ListIssueTimeline(ctx, owner, repo, prNum, nil)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(timeline)
-	// better to get from timeline because we have timestamp
+
+	// Process timeline events to extract timestamps
 	for _, event := range timeline {
 		if *event.Event == "review_requested" {
-			fmt.Println(event.CreatedAt.Time)
-			// from can be either a user or a team, so either GetReviewer or GetRequestedTeam witll be nil
 			if event.GetRequestedTeam() != nil {
-				reviewers = append(reviewers, event.GetRequestedTeam().GetName())
+				teamName := event.GetRequestedTeam().GetName()
+				teamTimestamps[teamName] = event.GetCreatedAt().Time
 			} else if event.GetReviewer() != nil {
-				reviewers = append(reviewers, event.GetReviewer().GetLogin())
+				login := event.GetReviewer().GetLogin()
+				reviewerTimestamps[login] = event.GetCreatedAt().Time
 			}
-
-			fmt.Println("Reviewer added:", reviewers)
 		}
 	}
-	return reviewers, nil
+
+	var reviewRequestsArray []ReviewRequest
+
+	// Add individual users with their timestamps
+	for _, user := range reviewRequests.Users {
+		login := *user.Login
+		timestamp, exists := reviewerTimestamps[login]
+		if !exists {
+			// If we couldn't find a timestamp, use current time as fallback
+			timestamp = time.Now()
+		}
+		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
+			From:   login,
+			On:     timestamp,
+			IsTeam: false,
+		})
+	}
+
+	// Add teams with their timestamps
+	for _, team := range reviewRequests.Teams {
+		teamName := *team.Name
+		timestamp, exists := teamTimestamps[teamName]
+		if !exists {
+			// If we couldn't find a timestamp, use current time as fallback
+			timestamp = time.Now()
+		}
+		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
+			From:   teamName,
+			On:     timestamp,
+			IsTeam: true,
+		})
+	}
+
+	return reviewRequestsArray, nil
 }

@@ -26,6 +26,8 @@ var PingCmd = &cobra.Command{
 	Short: "Ping PR reviewers to remind them",
 	Long:  `Ping PR reviewers to remind them to review the Pull Request.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		isDryRun := viper.GetBool("dry-run")
+
 		repository := viper.GetString("repository")
 		if repository == "" {
 			log.Fatal("Repository must be specified in the format owner/repo")
@@ -49,17 +51,18 @@ var PingCmd = &cobra.Command{
 		repoName = repoParts[1]
 
 		client := githubclient.NewClient(viper.GetString("github-token"))
-		reviewers, err := githubclient.GetReviewRequests(client, repoOwner, repoName, pr)
+		reviewRequests, err := githubclient.GetReviewRequests(client, repoOwner, repoName, pr)
 		if err != nil {
 			log.Fatalf("Error retrieving review requests: %v", err)
 		}
 
-		if len(reviewers) == 0 {
+		if len(reviewRequests) == 0 {
 			fmt.Printf("No reviewers found for PR #%s.\n", pr)
 			return
 		}
 
-		ctx := context.WithValue(cmd.Context(), "reviewers", reviewers)
+		ctx := context.WithValue(cmd.Context(), "dry-run", isDryRun)
+		ctx = context.WithValue(ctx, "reviewRequests", reviewRequests)
 		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
 		ctx = context.WithValue(ctx, "repoName", repoName)
 		ctx = context.WithValue(ctx, "pr", pr)
