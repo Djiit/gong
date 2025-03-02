@@ -1,3 +1,13 @@
 repository: Djiit/pingrequest
 delay: 0
 integration: stdout
+
+# Rules allow applying custom delays based on reviewer name patterns
+# Delays are specified in seconds
+rules:
+  - matchName: "@org/*"
+    delay: 86400  # 24 hours delay for organization members
+  - matchName: "external-*"
+    delay: 172800  # 48 hours delay for external reviewers
+  - matchName: "urgent-team" 
+    delay: 0  # No delay for urgent team members

@@ -71,18 +71,52 @@ var PingCmd = &cobra.Command{
 			return
 		}
 
-		// Apply delay filter
-		delaySeconds := viper.GetInt("delay")
-		if delaySeconds > 0 {
-			filteredRequests := githubclient.FilterReviewRequestsByDelay(reviewRequests, delaySeconds)
+		// Get global delay
+		globalDelay := viper.GetInt("delay")
 
-			if len(filteredRequests) == 0 {
-				fmt.Printf("No reviewers found for PR #%s that exceed the delay of %d seconds.\n", pr, delaySeconds)
-				return
+		// Check if we have rules defined
+		var rules []githubclient.Rule
+		if viper.IsSet("rules") {
+			rulesConfig := viper.Get("rules")
+
+			// If rules is a slice, process each rule
+			if rulesSlice, ok := rulesConfig.([]interface{}); ok {
+				for _, r := range rulesSlice {
+					if ruleMap, ok := r.(map[string]interface{}); ok {
+						rule := githubclient.Rule{}
+
+						if matchName, ok := ruleMap["matchName"].(string); ok {
+							rule.MatchName = matchName
+						}
+
+						if delay, ok := ruleMap["delay"].(int); ok {
+							rule.Delay = delay
+						}
+
+						if rule.MatchName != "" { // Only add rules with a valid match pattern
+							rules = append(rules, rule)
+						}
+					}
+				}
 			}
-
-			reviewRequests = filteredRequests
 		}
+
+		// Filter review requests based on global delay and rules
+		filteredRequests := reviewRequests
+		if len(rules) > 0 {
+			fmt.Printf("Applying %d rules to filter reviewers\n", len(rules))
+			filteredRequests = githubclient.FilterReviewRequestsByRules(reviewRequests, globalDelay, rules)
+		} else if globalDelay > 0 {
+			fmt.Printf("Filtering reviewers with global delay of %d seconds\n", globalDelay)
+			filteredRequests = githubclient.FilterReviewRequestsByDelay(reviewRequests, globalDelay)
+		}
+
+		if len(filteredRequests) == 0 {
+			fmt.Printf("No reviewers found for PR #%s that match the delay criteria.\n", pr)
+			return
+		}
+
+		reviewRequests = filteredRequests
 
 		ctx := context.WithValue(cmd.Context(), "dry-run", isDryRun)
 		ctx = context.WithValue(ctx, "reviewRequests", reviewRequests)

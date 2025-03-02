@@ -2,6 +2,7 @@ package githubclient
 
 import (
 	"context"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -12,6 +13,12 @@ import (
 
 // Variable to allow time.Now to be mocked in tests
 var timeNow = time.Now
+
+// Rule represents a rule for matching reviewers with custom delays
+type Rule struct {
+	MatchName string
+	Delay     int
+}
 
 func NewClient(githubToken string) *github.Client {
 	ctx := context.Background()
@@ -125,6 +132,43 @@ func FilterReviewRequestsByDelay(requests []ReviewRequest, delaySeconds int) []R
 
 	for _, req := range requests {
 		if now.Sub(req.On).Seconds() >= float64(delaySeconds) {
+			filteredRequests = append(filteredRequests, req)
+		}
+	}
+
+	return filteredRequests
+}
+
+// FilterReviewRequestsByRules filters review requests using a set of rules
+// Each rule can override the global delay for specific reviewers matching the glob pattern
+func FilterReviewRequestsByRules(requests []ReviewRequest, globalDelay int, rules []Rule) []ReviewRequest {
+	if len(rules) == 0 {
+		return FilterReviewRequestsByDelay(requests, globalDelay)
+	}
+
+	var filteredRequests []ReviewRequest
+	now := timeNow()
+
+	for _, req := range requests {
+		// Default to global delay
+		appliedDelay := globalDelay
+
+		// Check if any rule matches this reviewer
+		for _, rule := range rules {
+			if matched, _ := filepath.Match(rule.MatchName, req.From); matched {
+				appliedDelay = rule.Delay
+				break
+			}
+		}
+
+		// Skip filtering if delay is 0 or negative
+		if appliedDelay <= 0 {
+			filteredRequests = append(filteredRequests, req)
+			continue
+		}
+
+		// Apply the determined delay (either global or from matching rule)
+		if now.Sub(req.On).Seconds() >= float64(appliedDelay) {
 			filteredRequests = append(filteredRequests, req)
 		}
 	}
