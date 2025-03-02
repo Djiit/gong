@@ -39,7 +39,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.ping-request.yaml)")
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub token")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display more verbose output in console output. (default: false)")
-	rootCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "Run in dry-run mode. (default: false)")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Run in dry-run mode. (default: false)")
 	viper.BindPFlags(rootCmd.PersistentFlags())
 
 	// Add subcommands

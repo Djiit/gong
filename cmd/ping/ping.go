@@ -18,6 +18,7 @@ var (
 	repoName    string
 	pr          string
 	integration string
+	delay       int
 )
 
 // pingCmd represents the ping command
@@ -29,8 +30,17 @@ var PingCmd = &cobra.Command{
 		isDryRun := viper.GetBool("dry-run")
 
 		repository := viper.GetString("repository")
+		// If repository is not specified, try to detect it
 		if repository == "" {
-			log.Fatal("Repository must be specified in the format owner/repo")
+			detectedRepo, err := githubclient.GetCurrentRepository()
+			if err != nil {
+				log.Fatalf("Error detecting current repository: %v. Please specify a repository using the --repository flag.", err)
+			}
+			if detectedRepo == "" {
+				log.Fatal("Could not detect current repository. Please specify a repository using the --repository flag.")
+			}
+			repository = detectedRepo
+			fmt.Printf("Using detected repository: %s\n", repository)
 		}
 
 		pr := viper.GetString("pr")
@@ -61,6 +71,19 @@ var PingCmd = &cobra.Command{
 			return
 		}
 
+		// Apply delay filter
+		delaySeconds := viper.GetInt("delay")
+		if delaySeconds > 0 {
+			filteredRequests := githubclient.FilterReviewRequestsByDelay(reviewRequests, delaySeconds)
+
+			if len(filteredRequests) == 0 {
+				fmt.Printf("No reviewers found for PR #%s that exceed the delay of %d seconds.\n", pr, delaySeconds)
+				return
+			}
+
+			reviewRequests = filteredRequests
+		}
+
 		ctx := context.WithValue(cmd.Context(), "dry-run", isDryRun)
 		ctx = context.WithValue(ctx, "reviewRequests", reviewRequests)
 		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
@@ -77,9 +100,11 @@ var PingCmd = &cobra.Command{
 }
 
 func init() {
-	PingCmd.PersistentFlags().StringVarP(&repository, "repository", "r", repository, "Repository in the format owner/repo")
+	PingCmd.PersistentFlags().StringVarP(&repository, "repository", "r", repository, "Repository in the format owner/repo (auto-detected if not specified)")
 	PingCmd.PersistentFlags().StringVar(&pr, "pr", pr, "Pull Request number")
 	PingCmd.PersistentFlags().StringVarP(&integration, "integration", "i", integration, "Integration to use for pinging reviewers (e.g., stdout, comment)")
+	PingCmd.PersistentFlags().IntVarP(&delay, "delay", "d", 0, "Delay in seconds before pinging reviewers (default: 0, ping immediately)")
 	viper.BindPFlags(PingCmd.PersistentFlags())
 	viper.SetDefault("integration", "stdout")
+	viper.SetDefault("delay", 0)
 }
