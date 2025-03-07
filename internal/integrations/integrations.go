@@ -3,8 +3,8 @@ package integrations
 import (
 	"context"
 
-	"github.com/Djiit/pingrequest/internal/integrations/comment"
-	"github.com/Djiit/pingrequest/internal/integrations/stdout"
+	"github.com/Djiit/gong/internal/integrations/comment"
+	"github.com/Djiit/gong/internal/integrations/stdout"
 )
 
 type Integration struct {

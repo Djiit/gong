@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Djiit/pingrequest/internal/githubclient"
+	"github.com/Djiit/gong/internal/githubclient"
 )
 
 // Variable to allow time.Now to be mocked in tests

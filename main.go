@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/Djiit/pingrequest/cmd"
+	"github.com/Djiit/gong/cmd"
 )
 
 var (

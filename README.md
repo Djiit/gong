@@ -11,7 +11,7 @@ gong is a tiny, work-in-progress, opinionated CLI for nudging/pinging reviewers 
 
 ### Rules-Based Delay System
 
-PingRequest allows you to configure custom delays based on reviewer names using glob patterns. This lets you define different waiting periods before pinging different reviewers or teams.
+gong allows you to configure custom delays based on reviewer names using glob patterns. This lets you define different waiting periods before pinging different reviewers or teams.
 
 #### Configuration Example
 

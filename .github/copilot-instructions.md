@@ -1,10 +1,10 @@
 # About
 
-PingRequest is a Golang CLI tool that pings Pull Request reviewers to remind them to review the PR.
+gong is a Golang CLI tool that pings Pull Request reviewers to remind them to review the PR.
 
 It leverages a ruleset to determine when to ping reviewers and which reviewers to ping.
 
-The project is located at https://github.com/Djiit/pingrequest.
+The project is located at https://github.com/Djiit/gong.
 
 It is built using the [Cobra](https://github.com/spf13/cobra) library, which provides a simple interface for creating command-line applications in Go.
 

@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Djiit/pingrequest/internal/githubclient"
-	"github.com/Djiit/pingrequest/internal/integrations"
-	"github.com/Djiit/pingrequest/internal/rules"
+	"github.com/Djiit/gong/internal/githubclient"
+	"github.com/Djiit/gong/internal/integrations"
+	"github.com/Djiit/gong/internal/rules"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

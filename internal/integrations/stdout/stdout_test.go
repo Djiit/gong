@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Djiit/pingrequest/internal/githubclient"
+	"github.com/Djiit/gong/internal/githubclient"
 )
 
 func TestFormatReviewRequests(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Djiit/pingrequest/internal/githubclient"
+	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/stretchr/testify/assert"
 )
 

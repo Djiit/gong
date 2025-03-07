@@ -1,4 +1,4 @@
 source:
-  name: pingrequest
+  name: gong
 catalogers:
   - go

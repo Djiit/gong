@@ -1,4 +1,4 @@
-name: pingrequest
+name: gong
 
 match:
   golang:

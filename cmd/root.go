@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Djiit/pingrequest/cmd/ping"
+	"github.com/Djiit/gong/cmd/ping"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,9 +17,9 @@ var (
 	dryRun      bool
 	githubToken string
 	rootCmd     = &cobra.Command{
-		Use:     "pingrequest",
-		Long:    "pingrequest is a CLI tool to ping reviewers.",
-		Example: "pingrequest",
+		Use:     "gong",
+		Long:    "gong is a CLI tool to ping reviewers.",
+		Example: "gong",
 	}
 )
 
@@ -36,7 +36,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.ping-request.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.gong.yaml)")
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub token")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display more verbose output in console output. (default: false)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Run in dry-run mode. (default: false)")
@@ -56,14 +56,13 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".ping-request" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".ping-request")
+		viper.SetConfigName(".gong")
 	}
 
 	viper.AutomaticEnv()
-	viper.SetEnvPrefix("PING_REQUEST")
+	viper.SetEnvPrefix("GONG")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 
 	// If a config file is found, read it in.

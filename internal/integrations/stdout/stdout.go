@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Djiit/pingrequest/internal/format"
-	"github.com/Djiit/pingrequest/internal/githubclient"
+	"github.com/Djiit/gong/internal/format"
+	"github.com/Djiit/gong/internal/githubclient"
 )
 
 func Run(ctx context.Context) {

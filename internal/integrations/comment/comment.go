@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Djiit/pingrequest/internal/githubclient"
+	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/google/go-github/v69/github"
 	"github.com/spf13/viper"
 )
@@ -49,7 +49,7 @@ func alreadyCommented(ctx context.Context, client *github.Client, owner, repo st
 	}
 
 	for _, comment := range comments {
-		if strings.Contains(*comment.Body, "<!-- pingrequest -->") {
+		if strings.Contains(*comment.Body, "<!-- gong -->") {
 			return true
 		}
 	}
@@ -57,7 +57,7 @@ func alreadyCommented(ctx context.Context, client *github.Client, owner, repo st
 }
 
 func postComment(ctx context.Context, client *github.Client, owner, repo string, prNumber int, reviewers []string) error {
-	body := fmt.Sprintf("Awaiting reviews from: @%s\n<!-- pingrequest -->", strings.Join(reviewers, ", "))
+	body := fmt.Sprintf("Awaiting reviews from: @%s\n<!-- gong -->", strings.Join(reviewers, ", "))
 	prComment := &github.IssueComment{Body: &body}
 	_, _, err := client.Issues.CreateComment(ctx, owner, repo, prNumber, prComment)
 	if err != nil {
