@@ -1,3 +1,5 @@
+github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ4pzQ=
+github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
 github.com/bradleyfalzon/ghinstallation/v2 v2.13.0 h1:5FhjW93/YLQJDmPdeyMPw7IjAPzqsr+0jHPfrPz0sZI=
 github.com/bradleyfalzon/ghinstallation/v2 v2.13.0/go.mod h1:EJ6fgedVEHa2kUyBTTvslJCXJafS/mhJNNKEOCspZXQ=
 github.com/cli/go-gh/v2 v2.11.2 h1:oad1+sESTPNTiTvh3I3t8UmxuovNDxhwLzeMHk45Q9w=

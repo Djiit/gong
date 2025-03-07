@@ -2,7 +2,6 @@ package githubclient
 
 import (
 	"context"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -10,15 +9,6 @@ import (
 	"github.com/google/go-github/v69/github"
 	"golang.org/x/oauth2"
 )
-
-// Variable to allow time.Now to be mocked in tests
-var timeNow = time.Now
-
-// Rule represents a rule for matching reviewers with custom delays
-type Rule struct {
-	MatchName string
-	Delay     int
-}
 
 func NewClient(githubToken string) *github.Client {
 	ctx := context.Background()
@@ -31,9 +21,12 @@ func NewClient(githubToken string) *github.Client {
 }
 
 type ReviewRequest struct {
-	From   string
-	On     time.Time
-	IsTeam bool
+	From       string
+	On         time.Time
+	IsTeam     bool
+	Delay      int  // The delay in seconds that applies to this reviewer
+	Enabled    bool // Whether pinging this reviewer is enabled
+	ShouldPing bool // Whether this reviewer should be pinged (based on delay and enabled)
 }
 
 // GetCurrentRepository detects the current repository from the local git context
@@ -96,9 +89,12 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 			timestamp = time.Now()
 		}
 		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
-			From:   login,
-			On:     timestamp,
-			IsTeam: false,
+			From:       login,
+			On:         timestamp,
+			IsTeam:     false,
+			Enabled:    true,  // Default to enabled
+			Delay:      0,     // Default delay will be set later
+			ShouldPing: false, // Will be evaluated later
 		})
 	}
 
@@ -111,67 +107,14 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 			timestamp = time.Now()
 		}
 		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
-			From:   teamName,
-			On:     timestamp,
-			IsTeam: true,
+			From:       teamName,
+			On:         timestamp,
+			IsTeam:     true,
+			Enabled:    true,  // Default to enabled
+			Delay:      0,     // Default delay will be set later
+			ShouldPing: false, // Will be evaluated later
 		})
 	}
 
 	return reviewRequestsArray, nil
-}
-
-// FilterReviewRequestsByDelay filters review requests by a specified delay in seconds.
-// Only requests that are older than the delay will be included in the result.
-func FilterReviewRequestsByDelay(requests []ReviewRequest, delaySeconds int) []ReviewRequest {
-	if delaySeconds <= 0 {
-		return requests
-	}
-
-	var filteredRequests []ReviewRequest
-	now := timeNow()
-
-	for _, req := range requests {
-		if now.Sub(req.On).Seconds() >= float64(delaySeconds) {
-			filteredRequests = append(filteredRequests, req)
-		}
-	}
-
-	return filteredRequests
-}
-
-// FilterReviewRequestsByRules filters review requests using a set of rules
-// Each rule can override the global delay for specific reviewers matching the glob pattern
-func FilterReviewRequestsByRules(requests []ReviewRequest, globalDelay int, rules []Rule) []ReviewRequest {
-	if len(rules) == 0 {
-		return FilterReviewRequestsByDelay(requests, globalDelay)
-	}
-
-	var filteredRequests []ReviewRequest
-	now := timeNow()
-
-	for _, req := range requests {
-		// Default to global delay
-		appliedDelay := globalDelay
-
-		// Check if any rule matches this reviewer
-		for _, rule := range rules {
-			if matched, _ := filepath.Match(rule.MatchName, req.From); matched {
-				appliedDelay = rule.Delay
-				break
-			}
-		}
-
-		// Skip filtering if delay is 0 or negative
-		if appliedDelay <= 0 {
-			filteredRequests = append(filteredRequests, req)
-			continue
-		}
-
-		// Apply the determined delay (either global or from matching rule)
-		if now.Sub(req.On).Seconds() >= float64(appliedDelay) {
-			filteredRequests = append(filteredRequests, req)
-		}
-	}
-
-	return filteredRequests
 }

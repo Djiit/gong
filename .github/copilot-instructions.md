@@ -2,6 +2,8 @@
 
 PingRequest is a Golang CLI tool that pings Pull Request reviewers to remind them to review the PR.
 
+It leverages a ruleset to determine when to ping reviewers and which reviewers to ping.
+
 The project is located at https://github.com/Djiit/pingrequest.
 
 It is built using the [Cobra](https://github.com/spf13/cobra) library, which provides a simple interface for creating command-line applications in Go.
@@ -10,4 +12,8 @@ It leverages the GitHub API to fetch the list of reviewers for a given PR and se
 
 It is designed to be run as a GitHub Action, but can also be run locally. It can also be invoked as a GH CLI extension.
 
-It is tested using unit tests and integration tests.
+It is tested using unit tests and integration tests. Whenever you are tasked to generate a new feature, please make sure to write tests for it.
+
+## Pushing your changes
+
+- We use conventional commits to manage our commit messages. Please follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification when writing your commit messages.

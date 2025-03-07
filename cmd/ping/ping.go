@@ -8,6 +8,7 @@ import (
 
 	"github.com/Djiit/pingrequest/internal/githubclient"
 	"github.com/Djiit/pingrequest/internal/integrations"
+	"github.com/Djiit/pingrequest/internal/rules"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -19,6 +20,7 @@ var (
 	pr          string
 	integration string
 	delay       int
+	enabled     bool
 )
 
 // pingCmd represents the ping command
@@ -60,6 +62,14 @@ var PingCmd = &cobra.Command{
 		repoOwner = repoParts[0]
 		repoName = repoParts[1]
 
+		ctx := context.WithValue(cmd.Context(), "dry-run", isDryRun)
+		ctx = context.WithValue(ctx, "enabled", enabled)
+		ctx = context.WithValue(ctx, "delay", delay)
+		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
+		ctx = context.WithValue(ctx, "repoName", repoName)
+		ctx = context.WithValue(ctx, "pr", pr)
+
+		// Get review requests
 		client := githubclient.NewClient(viper.GetString("github-token"))
 		reviewRequests, err := githubclient.GetReviewRequests(client, repoOwner, repoName, pr)
 		if err != nil {
@@ -71,11 +81,8 @@ var PingCmd = &cobra.Command{
 			return
 		}
 
-		// Get global delay
-		globalDelay := viper.GetInt("delay")
-
 		// Check if we have rules defined
-		var rules []githubclient.Rule
+		var ruleset []rules.Rule
 		if viper.IsSet("rules") {
 			rulesConfig := viper.Get("rules")
 
@@ -83,7 +90,7 @@ var PingCmd = &cobra.Command{
 			if rulesSlice, ok := rulesConfig.([]interface{}); ok {
 				for _, r := range rulesSlice {
 					if ruleMap, ok := r.(map[string]interface{}); ok {
-						rule := githubclient.Rule{}
+						rule := rules.Rule{}
 
 						if matchName, ok := ruleMap["matchName"].(string); ok {
 							rule.MatchName = matchName
@@ -93,8 +100,14 @@ var PingCmd = &cobra.Command{
 							rule.Delay = delay
 						}
 
+						// Set rule enabled status, defaulting to true if not specified
+						rule.Enabled = true
+						if enabled, ok := ruleMap["enabled"].(bool); ok {
+							rule.Enabled = enabled
+						}
+
 						if rule.MatchName != "" { // Only add rules with a valid match pattern
-							rules = append(rules, rule)
+							ruleset = append(ruleset, rule)
 						}
 					}
 				}
@@ -103,13 +116,7 @@ var PingCmd = &cobra.Command{
 
 		// Filter review requests based on global delay and rules
 		filteredRequests := reviewRequests
-		if len(rules) > 0 {
-			fmt.Printf("Applying %d rules to filter reviewers\n", len(rules))
-			filteredRequests = githubclient.FilterReviewRequestsByRules(reviewRequests, globalDelay, rules)
-		} else if globalDelay > 0 {
-			fmt.Printf("Filtering reviewers with global delay of %d seconds\n", globalDelay)
-			filteredRequests = githubclient.FilterReviewRequestsByDelay(reviewRequests, globalDelay)
-		}
+		filteredRequests = rules.ApplyRules(ctx, reviewRequests, ruleset)
 
 		if len(filteredRequests) == 0 {
 			fmt.Printf("No reviewers found for PR #%s that match the delay criteria.\n", pr)
@@ -117,13 +124,7 @@ var PingCmd = &cobra.Command{
 		}
 
 		reviewRequests = filteredRequests
-
-		ctx := context.WithValue(cmd.Context(), "dry-run", isDryRun)
 		ctx = context.WithValue(ctx, "reviewRequests", reviewRequests)
-		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
-		ctx = context.WithValue(ctx, "repoName", repoName)
-		ctx = context.WithValue(ctx, "pr", pr)
-
 		integrationFunc, ok := integrations.Integrations[integration]
 		if !ok {
 			log.Fatalf("Unknown integration: %s", integration)
@@ -138,7 +139,9 @@ func init() {
 	PingCmd.PersistentFlags().StringVar(&pr, "pr", pr, "Pull Request number")
 	PingCmd.PersistentFlags().StringVarP(&integration, "integration", "i", integration, "Integration to use for pinging reviewers (e.g., stdout, comment)")
 	PingCmd.PersistentFlags().IntVarP(&delay, "delay", "d", 0, "Delay in seconds before pinging reviewers (default: 0, ping immediately)")
+	PingCmd.PersistentFlags().BoolVar(&enabled, "enabled", true, "Enable or disable pinging functionality (default: true)")
 	viper.BindPFlags(PingCmd.PersistentFlags())
 	viper.SetDefault("integration", "stdout")
 	viper.SetDefault("delay", 0)
+	viper.SetDefault("enabled", true)
 }

@@ -28,7 +28,9 @@ func formatReviewRequests(reviewRequests []githubclient.ReviewRequest) string {
 		return "No pending review requests."
 	}
 
-	var reviewers []string
+	var activeReviewers []string
+	var disabledReviewers []string
+
 	for _, req := range reviewRequests {
 		timeSinceRequest := time.Since(req.On).Round(time.Hour)
 		formattedDuration := format.FormatDuration(timeSinceRequest)
@@ -38,8 +40,29 @@ func formatReviewRequests(reviewRequests []githubclient.ReviewRequest) string {
 			reviewer += " (team)"
 		}
 
-		reviewers = append(reviewers, fmt.Sprintf("%s (%s ago)", reviewer, formattedDuration))
+		reviewerInfo := fmt.Sprintf("%s (%s ago, delay: %ds)",
+			reviewer, formattedDuration, req.Delay)
+
+		if req.ShouldPing {
+			activeReviewers = append(activeReviewers, reviewerInfo)
+		} else {
+			status := "waiting"
+			if !req.Enabled {
+				status = "disabled"
+			}
+			disabledReviewers = append(disabledReviewers, fmt.Sprintf("%s, status: %s", reviewerInfo, status))
+		}
 	}
 
-	return fmt.Sprintf("Awaiting reviews from: %s", strings.Join(reviewers, ", "))
+	var result strings.Builder
+
+	if len(activeReviewers) > 0 {
+		result.WriteString(fmt.Sprintf("Pinging: %s\n", strings.Join(activeReviewers, ", ")))
+	}
+
+	if len(disabledReviewers) > 0 {
+		result.WriteString(fmt.Sprintf("Not pinging: %s", strings.Join(disabledReviewers, ", ")))
+	}
+
+	return result.String()
 }
