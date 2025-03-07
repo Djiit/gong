@@ -1,0 +1,23 @@
+[tools]
+go = "1.23.2"
+
+[tasks.build]
+alias = "default"
+description = "Build the project"
+run = "go build"
+
+[tasks.dev]
+description = "Run the project"
+run = "go run main.go"
+
+[tasks.test]
+description = "Run tests"
+run = "go test ./..."
+
+[tasks.lint]
+description = "Run linters"
+run = "golangci-lint run ./..."
+
+[tasks.docker]
+description = "Create a docker image using ko"
+run = "ko build main.go --push=false"
