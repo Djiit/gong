@@ -8,8 +8,10 @@ import (
 
 var (
 	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	// nolint:unused
+	commit = "none"
+	// nolint:unused
+	date = "unknown"
 )
 
 func main() {
