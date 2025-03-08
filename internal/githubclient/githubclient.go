@@ -21,12 +21,9 @@ func NewClient(githubToken string) *github.Client {
 }
 
 type ReviewRequest struct {
-	From       string
-	On         time.Time
-	IsTeam     bool
-	Delay      int  // The delay in seconds that applies to this reviewer
-	Enabled    bool // Whether pinging this reviewer is enabled
-	ShouldPing bool // Whether this reviewer should be pinged (based on delay and enabled)
+	From   string
+	On     time.Time
+	IsTeam bool
 }
 
 // GetCurrentRepository detects the current repository from the local git context
@@ -89,12 +86,9 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 			timestamp = time.Now()
 		}
 		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
-			From:       login,
-			On:         timestamp,
-			IsTeam:     false,
-			Enabled:    true,  // Default to enabled
-			Delay:      0,     // Default delay will be set later
-			ShouldPing: false, // Will be evaluated later
+			From:   login,
+			On:     timestamp,
+			IsTeam: false,
 		})
 	}
 
@@ -107,12 +101,9 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 			timestamp = time.Now()
 		}
 		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
-			From:       teamName,
-			On:         timestamp,
-			IsTeam:     true,
-			Enabled:    true,  // Default to enabled
-			Delay:      0,     // Default delay will be set later
-			ShouldPing: false, // Will be evaluated later
+			From:   teamName,
+			On:     timestamp,
+			IsTeam: true,
 		})
 	}
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/Djiit/gong/internal/integrations"
+	"github.com/Djiit/gong/internal/ping"
 	"github.com/Djiit/gong/internal/rules"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -68,6 +69,7 @@ var PingCmd = &cobra.Command{
 		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
 		ctx = context.WithValue(ctx, "repoName", repoName)
 		ctx = context.WithValue(ctx, "pr", pr)
+		ctx = context.WithValue(ctx, "integration", integration)
 
 		// Get review requests
 		client := githubclient.NewClient(viper.GetString("github-token"))
@@ -81,49 +83,39 @@ var PingCmd = &cobra.Command{
 			return
 		}
 
-		// Check if we have rules defined
-		var ruleset []rules.Rule
-		if viper.IsSet("rules") {
-			rulesConfig := viper.Get("rules")
+		// Parse rules from config
+		ruleset := rules.ParseRules()
 
-			// If rules is a slice, process each rule
-			if rulesSlice, ok := rulesConfig.([]interface{}); ok {
-				for _, r := range rulesSlice {
-					if ruleMap, ok := r.(map[string]interface{}); ok {
-						rule := rules.Rule{}
+		// Enrich review requests data with rules
+		pingRequests := rules.ApplyRules(ctx, reviewRequests, ruleset)
 
-						if matchName, ok := ruleMap["matchName"].(string); ok {
-							rule.MatchName = matchName
-						}
+		ctx = context.WithValue(ctx, "pingRequests", pingRequests)
 
-						if delay, ok := ruleMap["delay"].(int); ok {
-							rule.Delay = delay
-						}
-
-						// Set rule enabled status, defaulting to true if not specified
-						rule.Enabled = true
-						if enabled, ok := ruleMap["enabled"].(bool); ok {
-							rule.Enabled = enabled
-						}
-
-						if rule.MatchName != "" { // Only add rules with a valid match pattern
-							ruleset = append(ruleset, rule)
-						}
-					}
+		// Group review requests by integration
+		integrationGroups := make(map[string][]ping.PingRequest)
+		for _, req := range pingRequests {
+			if req.ShouldPing {
+				integrationName := req.Integration
+				// If no integration specified for this reviewer, use the default
+				if integrationName == "" {
+					integrationName = integration
 				}
+				integrationGroups[integrationName] = append(integrationGroups[integrationName], req)
 			}
 		}
 
-		// Enrich review requests data with rules
-		reviewRequests = rules.ApplyRules(ctx, reviewRequests, ruleset)
+		// Process each integration group separately
+		for integrationName, requests := range integrationGroups {
+			integrationFunc, ok := integrations.Integrations[integrationName]
+			if !ok {
+				log.Printf("Warning: Unknown integration: %s, skipping associated reviewers", integrationName)
+				continue
+			}
 
-		ctx = context.WithValue(ctx, "reviewRequests", reviewRequests)
-		integrationFunc, ok := integrations.Integrations[integration]
-		if !ok {
-			log.Fatalf("Unknown integration: %s", integration)
+			// Create a new context with just the requests for this integration
+			integrationCtx := context.WithValue(ctx, "reviewRequests", requests)
+			integrationFunc.Run(integrationCtx)
 		}
-
-		integrationFunc.Run(ctx)
 	},
 }
 

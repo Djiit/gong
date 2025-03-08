@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/Djiit/gong/internal/format"
-	"github.com/Djiit/gong/internal/githubclient"
+	"github.com/Djiit/gong/internal/ping"
 )
 
 func Run(ctx context.Context) {
-	reviewRequests := ctx.Value("reviewRequests").([]githubclient.ReviewRequest)
+	pingRequests := ctx.Value("pingRequests").([]ping.PingRequest)
 	isDryRun := ctx.Value("dry-run").(bool)
 
 	if isDryRun {
@@ -19,24 +19,24 @@ func Run(ctx context.Context) {
 		return
 	}
 
-	output := formatReviewRequests(reviewRequests)
+	output := formatPingRequests(pingRequests)
 	fmt.Println(output)
 }
 
-func formatReviewRequests(reviewRequests []githubclient.ReviewRequest) string {
-	if len(reviewRequests) == 0 {
+func formatPingRequests(pingRequests []ping.PingRequest) string {
+	if len(pingRequests) == 0 {
 		return "No pending review requests."
 	}
 
 	var activeReviewers []string
 	var disabledReviewers []string
 
-	for _, req := range reviewRequests {
-		timeSinceRequest := time.Since(req.On).Round(time.Hour)
+	for _, req := range pingRequests {
+		timeSinceRequest := time.Since(req.Req.On).Round(time.Hour)
 		formattedDuration := format.FormatDuration(timeSinceRequest)
 
-		reviewer := req.From
-		if req.IsTeam {
+		reviewer := req.Req.From
+		if req.Req.IsTeam {
 			reviewer += " (team)"
 		}
 
