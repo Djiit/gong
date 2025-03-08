@@ -15,24 +15,34 @@ var timeNow = time.Now
 
 // Rule represents a rule for matching reviewers with custom delays
 type Rule struct {
-	MatchName   string
-	Delay       int
-	Enabled     bool   // Whether this rule is enabled
-	Integration string // The integration to use for this rule (optional)
+	MatchName    string
+	Delay        int
+	Enabled      bool
+	Integrations []ping.Integration // List of integrations for this rule
 }
 
 // Each rule can override the global delay for specific reviewers matching the glob pattern
-// It also updates the Delay, Enabled, ShouldPing, and Integration field for each request.
+// It also updates the Delay, Enabled, ShouldPing, and Integrations field for each request.
 func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rules []Rule) []ping.PingRequest {
 	var pingRequests []ping.PingRequest
 	now := timeNow()
 
+	// Get global integrations from context
+	var globalIntegrations []ping.Integration
+	if intgs, ok := ctx.Value("integrations").([]ping.Integration); ok {
+		globalIntegrations = intgs
+	}
+
 	for _, req := range requests {
-		pingReq := ping.PingRequest{}
-		pingReq.Req = req
-		pingReq.Delay = ctx.Value("delay").(int)
-		pingReq.Enabled = ctx.Value("enabled").(bool)
-		pingReq.Integration = ctx.Value("integration").(string)
+		pingReq := ping.PingRequest{
+			Req:          req,
+			Delay:        ctx.Value("delay").(int),
+			Enabled:      ctx.Value("enabled").(bool),
+			Integrations: make([]ping.Integration, len(globalIntegrations)),
+		}
+
+		// Copy global integrations
+		copy(pingReq.Integrations, globalIntegrations)
 
 		// Check if any rule matches this reviewer
 		for _, rule := range rules {
@@ -40,9 +50,9 @@ func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rule
 				pingReq.Delay = rule.Delay
 				pingReq.Enabled = rule.Enabled
 
-				// Override integration only if specified in the rule
-				if rule.Integration != "" {
-					pingReq.Integration = rule.Integration
+				// Override integrations if specified in the rule
+				if len(rule.Integrations) > 0 {
+					pingReq.Integrations = rule.Integrations
 				}
 				break
 			}
@@ -54,6 +64,29 @@ func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rule
 	}
 
 	return pingRequests
+}
+
+// ParseIntegration parses a single integration configuration from viper
+func ParseIntegration(intgMap map[string]interface{}) ping.Integration {
+	integration := ping.Integration{
+		Parameters: make(map[string]string),
+	}
+
+	// Extract integration type
+	if integrationType, ok := intgMap["type"].(string); ok {
+		integration.Type = integrationType
+	}
+
+	// Extract parameters if they exist
+	if params, ok := intgMap["params"].(map[string]interface{}); ok {
+		for k, v := range params {
+			if strValue, ok := v.(string); ok {
+				integration.Parameters[k] = strValue
+			}
+		}
+	}
+
+	return integration
 }
 
 // ParseRules extracts rules configuration from viper
@@ -80,8 +113,16 @@ func ParseRules() []Rule {
 						rule.Enabled = enabled
 					}
 
-					if ruleIntegration, ok := ruleMap["integration"].(string); ok {
-						rule.Integration = ruleIntegration
+					// Extract integrations if they exist
+					if integrations, ok := ruleMap["integrations"].([]interface{}); ok {
+						for _, intg := range integrations {
+							if intgMap, ok := intg.(map[string]interface{}); ok {
+								integration := ParseIntegration(intgMap)
+								if integration.Type != "" {
+									rule.Integrations = append(rule.Integrations, integration)
+								}
+							}
+						}
 					}
 
 					if rule.MatchName != "" { // Only add rules with a valid match pattern
@@ -92,4 +133,26 @@ func ParseRules() []Rule {
 		}
 	}
 	return ruleset
+}
+
+// ParseGlobalIntegrations extracts global integration configurations from viper
+func ParseGlobalIntegrations() []ping.Integration {
+	var integrations []ping.Integration
+
+	if viper.IsSet("integrations") {
+		integrationsConfig := viper.Get("integrations")
+
+		if integrationsSlice, ok := integrationsConfig.([]interface{}); ok {
+			for _, intg := range integrationsSlice {
+				if intgMap, ok := intg.(map[string]interface{}); ok {
+					integration := ParseIntegration(intgMap)
+					if integration.Type != "" {
+						integrations = append(integrations, integration)
+					}
+				}
+			}
+		}
+	}
+
+	return integrations
 }

@@ -7,19 +7,27 @@ import (
 	"strings"
 
 	"github.com/Djiit/gong/internal/githubclient"
+	"github.com/Djiit/gong/internal/ping"
 	"github.com/google/go-github/v69/github"
 	"github.com/spf13/viper"
 )
 
 func Run(ctx context.Context) {
-	reviewers := ctx.Value("reviewers").([]string)
+	pingRequests := ctx.Value("pingRequests").([]ping.PingRequest)
 	repoOwner := ctx.Value("repoOwner").(string)
 	repoName := ctx.Value("repoName").(string)
 	prNumber := ctx.Value("pr").(string)
 	isDryRun := ctx.Value("dry-run").(bool)
 
+	// Extract the reviewers to mention from the ping requests
+	var reviewers []string
+	for _, req := range pingRequests {
+		reviewers = append(reviewers, req.Req.From)
+	}
+
 	if isDryRun {
-		fmt.Println("[DRY RUN] Would output reviewer information in a comment")
+		fmt.Printf("[DRY RUN] Would post GitHub comment mentioning: @%s\n",
+			strings.Join(reviewers, ", @"))
 		return
 	}
 
@@ -57,7 +65,7 @@ func alreadyCommented(ctx context.Context, client *github.Client, owner, repo st
 }
 
 func postComment(ctx context.Context, client *github.Client, owner, repo string, prNumber int, reviewers []string) error {
-	body := fmt.Sprintf("Awaiting reviews from: @%s\n<!-- gong -->", strings.Join(reviewers, ", "))
+	body := fmt.Sprintf("Awaiting reviews from: @%s\n<!-- gong -->", strings.Join(reviewers, ", @"))
 	prComment := &github.IssueComment{Body: &body}
 	_, _, err := client.Issues.CreateComment(ctx, owner, repo, prNumber, prComment)
 	if err != nil {

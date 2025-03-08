@@ -1,13 +1,34 @@
 repository: Djiit/gong
 delay: 0
-integration: stdout
+enabled: true
+
+# Global integrations configuration
+integrations:
+  - type: stdout
+  - type: slack
+    params:
+      channel: "#reviews" 
 
 # Rules allow applying custom delays based on reviewer name patterns
 # Delays are specified in seconds
 rules:
   - matchName: "@org/*"
     delay: 86400  # 24 hours delay for organization members
+    integrations:
+      - type: slack
+        params:
+          channel: "#org-reviews"
+      - type: comment
+  
   - matchName: "external-*"
     delay: 172800  # 48 hours delay for external reviewers
+    integrations: 
+      - type: comment
+
   - matchName: "urgent-team" 
     delay: 0  # No delay for urgent team members
+    integrations:
+      - type: slack
+        params:
+          channel: "#urgent"
+      - type: comment

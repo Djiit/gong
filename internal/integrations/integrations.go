@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Djiit/gong/internal/integrations/comment"
+	"github.com/Djiit/gong/internal/integrations/slack"
 	"github.com/Djiit/gong/internal/integrations/stdout"
 )
 
@@ -20,5 +21,9 @@ var Integrations = map[string]Integration{
 	"comment": {
 		Name: "Comment Integration",
 		Run:  comment.Run,
+	},
+	"slack": {
+		Name: "Slack Integration",
+		Run:  slack.Run,
 	},
 }

@@ -15,13 +15,12 @@ import (
 )
 
 var (
-	repository  string
-	repoOwner   string
-	repoName    string
-	pr          string
-	integration string
-	delay       int
-	enabled     bool
+	repository string
+	repoOwner  string
+	repoName   string
+	pr         string
+	delay      int
+	enabled    bool
 )
 
 // pingCmd represents the ping command
@@ -51,11 +50,6 @@ var PingCmd = &cobra.Command{
 			log.Fatal("PR number must be specified")
 		}
 
-		integration := viper.GetString("integration")
-		if integration == "" {
-			log.Fatal("Integration must be specified")
-		}
-
 		repoParts := strings.Split(repository, "/")
 		if len(repoParts) != 2 {
 			log.Fatalf("Invalid repository format. Expected owner/repo, got %s", repository)
@@ -63,13 +57,28 @@ var PingCmd = &cobra.Command{
 		repoOwner = repoParts[0]
 		repoName = repoParts[1]
 
+		// Create context with all necessary values
 		ctx := context.WithValue(cmd.Context(), "dry-run", isDryRun)
 		ctx = context.WithValue(ctx, "enabled", enabled)
 		ctx = context.WithValue(ctx, "delay", delay)
 		ctx = context.WithValue(ctx, "repoOwner", repoOwner)
 		ctx = context.WithValue(ctx, "repoName", repoName)
 		ctx = context.WithValue(ctx, "pr", pr)
-		ctx = context.WithValue(ctx, "integration", integration)
+
+		// Parse global integrations from config
+		globalIntegrations := rules.ParseGlobalIntegrations()
+
+		// If no integrations are configured, add default stdout
+		if len(globalIntegrations) == 0 {
+			globalIntegrations = []ping.Integration{
+				{
+					Type:       "stdout",
+					Parameters: make(map[string]string),
+				},
+			}
+		}
+
+		ctx = context.WithValue(ctx, "integrations", globalIntegrations)
 
 		// Get review requests
 		client := githubclient.NewClient(viper.GetString("github-token"))
@@ -89,31 +98,36 @@ var PingCmd = &cobra.Command{
 		// Enrich review requests data with rules
 		pingRequests := rules.ApplyRules(ctx, reviewRequests, ruleset)
 
+		// Store all ping requests in context
 		ctx = context.WithValue(ctx, "pingRequests", pingRequests)
 
-		// Group review requests by integration
+		// Group ping requests by integration type
 		integrationGroups := make(map[string][]ping.PingRequest)
+
+		// For each ping request that should be pinged, process each of its integrations
 		for _, req := range pingRequests {
-			if req.ShouldPing {
-				integrationName := req.Integration
-				// If no integration specified for this reviewer, use the default
-				if integrationName == "" {
-					integrationName = integration
-				}
-				integrationGroups[integrationName] = append(integrationGroups[integrationName], req)
+			if !req.ShouldPing {
+				continue
+			}
+
+			// Process each integration for this request
+			for _, integration := range req.Integrations {
+				integrationGroups[integration.Type] = append(integrationGroups[integration.Type], req)
 			}
 		}
 
 		// Process each integration group separately
-		for integrationName, requests := range integrationGroups {
-			integrationFunc, ok := integrations.Integrations[integrationName]
+		for integrationType, requests := range integrationGroups {
+			integrationFunc, ok := integrations.Integrations[integrationType]
 			if !ok {
-				log.Printf("Warning: Unknown integration: %s, skipping associated reviewers", integrationName)
+				log.Printf("Warning: Unknown integration: %s, skipping associated reviewers", integrationType)
 				continue
 			}
 
 			// Create a new context with just the requests for this integration
-			integrationCtx := context.WithValue(ctx, "reviewRequests", requests)
+			integrationCtx := context.WithValue(ctx, "pingRequests", requests)
+
+			// Execute the integration
 			integrationFunc.Run(integrationCtx)
 		}
 	},
@@ -122,14 +136,12 @@ var PingCmd = &cobra.Command{
 func init() {
 	PingCmd.PersistentFlags().StringVarP(&repository, "repository", "r", repository, "Repository in the format owner/repo (auto-detected if not specified)")
 	PingCmd.PersistentFlags().StringVar(&pr, "pr", pr, "Pull Request number")
-	PingCmd.PersistentFlags().StringVarP(&integration, "integration", "i", integration, "Integration to use for pinging reviewers (e.g., stdout, comment)")
 	PingCmd.PersistentFlags().IntVarP(&delay, "delay", "d", 0, "Delay in seconds before pinging reviewers (default: 0, ping immediately)")
 	PingCmd.PersistentFlags().BoolVar(&enabled, "enabled", true, "Enable or disable pinging functionality (default: true)")
 	err := viper.BindPFlags(PingCmd.PersistentFlags())
 	if err != nil {
 		log.Fatalf("Error binding flags: %v", err)
 	}
-	viper.SetDefault("integration", "stdout")
 	viper.SetDefault("delay", 0)
 	viper.SetDefault("enabled", true)
 }
