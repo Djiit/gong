@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Report
         uses: bearer/bearer-action@v2
+        with:
+          severity: critical,high
   sbom:
     runs-on: ubuntu-latest
     steps:

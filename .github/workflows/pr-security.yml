@@ -21,6 +21,7 @@ jobs:
         id: report
         uses: bearer/bearer-action@v2
         with:
+          severity: critical,high
           format: rdjson
           output: rd.json
           diff: true
