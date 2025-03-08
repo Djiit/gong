@@ -41,15 +41,7 @@ func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rule
 
 		// Determine if we should ping based on delay and enabled status
 		updatedReq.ShouldPing = updatedReq.Enabled && (updatedReq.Delay <= 0 || now.Sub(req.On).Seconds() >= float64(updatedReq.Delay))
-
-		// Only include in filtered results if should ping
-		if updatedReq.ShouldPing {
-			resultRequests = append(resultRequests, updatedReq)
-		} else {
-			// We still want to return the request with the updated status information
-			// but it won't be used for actual pinging
-			resultRequests = append(resultRequests, updatedReq)
-		}
+		resultRequests = append(resultRequests, updatedReq)
 	}
 
 	return resultRequests

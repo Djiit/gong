@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -40,7 +41,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub token")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display more verbose output in console output. (default: false)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Run in dry-run mode. (default: false)")
-	viper.BindPFlags(rootCmd.PersistentFlags())
+	err := viper.BindPFlags(rootCmd.PersistentFlags())
+	if err != nil {
+		log.Fatalf("Error binding flags: %v", err)
+	}
 
 	// Add subcommands
 	rootCmd.AddCommand(ping.PingCmd)

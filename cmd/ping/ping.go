@@ -114,16 +114,9 @@ var PingCmd = &cobra.Command{
 			}
 		}
 
-		// Filter review requests based on global delay and rules
-		filteredRequests := reviewRequests
-		filteredRequests = rules.ApplyRules(ctx, reviewRequests, ruleset)
+		// Enrich review requests data with rules
+		reviewRequests = rules.ApplyRules(ctx, reviewRequests, ruleset)
 
-		if len(filteredRequests) == 0 {
-			fmt.Printf("No reviewers found for PR #%s that match the delay criteria.\n", pr)
-			return
-		}
-
-		reviewRequests = filteredRequests
 		ctx = context.WithValue(ctx, "reviewRequests", reviewRequests)
 		integrationFunc, ok := integrations.Integrations[integration]
 		if !ok {
@@ -140,7 +133,10 @@ func init() {
 	PingCmd.PersistentFlags().StringVarP(&integration, "integration", "i", integration, "Integration to use for pinging reviewers (e.g., stdout, comment)")
 	PingCmd.PersistentFlags().IntVarP(&delay, "delay", "d", 0, "Delay in seconds before pinging reviewers (default: 0, ping immediately)")
 	PingCmd.PersistentFlags().BoolVar(&enabled, "enabled", true, "Enable or disable pinging functionality (default: true)")
-	viper.BindPFlags(PingCmd.PersistentFlags())
+	err := viper.BindPFlags(PingCmd.PersistentFlags())
+	if err != nil {
+		log.Fatalf("Error binding flags: %v", err)
+	}
 	viper.SetDefault("integration", "stdout")
 	viper.SetDefault("delay", 0)
 	viper.SetDefault("enabled", true)
