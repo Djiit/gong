@@ -1,6 +1,3 @@
-[tools]
-go = "1.23.2"
-
 [tasks.build]
 alias = "default"
 description = "Build the project"

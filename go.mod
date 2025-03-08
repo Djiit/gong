@@ -1,6 +1,6 @@
 module github.com/Djiit/gong
 
-go 1.23.2
+go 1.24.1
 
 require (
 	github.com/cli/go-gh/v2 v2.11.2
