@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/Djiit/gong)](https://goreportcard.com/report/github.com/Djiit/gong)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Djiit/gong.svg)](https://pkg.go.dev/github.com/Djiit/gong)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/Djiit/gong/CI)](https://github.com/Djiit/gong/actions)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Djiit/gong/test.yml?branch=main)](https://github.com/Djiit/gong/actions)
 [![GitHub](https://img.shields.io/github/license/Djiit/gong)](https://img.shields.io/github/license/Djiit/gong)
 
 gong is a tiny, work-in-progress, opinionated CLI for nudging/pinging reviewers on GitHub pull requests.
