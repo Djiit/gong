@@ -4,7 +4,7 @@ go 1.23.2
 
 require (
 	github.com/cli/go-gh/v2 v2.11.2
-	github.com/google/go-github/v69 v69.1.0
+	github.com/google/go-github/v69 v69.2.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/oauth2 v0.26.0
