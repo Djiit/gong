@@ -1,5 +1,5 @@
 version: 2
-project_name: gong
+project_name: gh-gong
 before:
   hooks:
     - go mod tidy
@@ -13,7 +13,7 @@ builds:
     goarch:
       - arm64
       - amd64
-    binary: gong
+    binary: gh-gong
     ignore:
       - goos: linux
         goarch: arm64
@@ -22,6 +22,9 @@ builds:
     ldflags:
       - -s -w -X cmd.Version={{.Version}}
 release:
+  github:
+    owner: Djiit
+    name: gh-gong
   prerelease: auto
   mode: keep-existing
 archives:
@@ -42,12 +45,3 @@ sboms:
   - artifacts: archive
 upx:
   - enabled: true
-kos:
-  - tags:
-      - "{{.Version}}"
-      - latest
-    platforms:
-      - linux/amd64
-      - darwin/amd64
-      - darwin/arm64
-    bare: true

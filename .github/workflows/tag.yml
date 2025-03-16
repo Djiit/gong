@@ -25,10 +25,16 @@ jobs:
           cache: true
       - name: Install Syft
         run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-      - name: Run GoReleaser
+      - name: Run GoReleaser (gong)
         uses: goreleaser/goreleaser-action@v6
         with:
           args: release --clean
         env:
           KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Run GoReleaser (gh-gong)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean -f .goreleaser-gh.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_EXTENSION_TOKEN }}
