@@ -14,6 +14,8 @@ It is designed to be run as a GitHub Action, but can also be run locally. It can
 
 It is tested using unit tests and integration tests. Whenever you are tasked to generate a new feature, please make sure to write tests for it.
 
+When writing comments or documentation, use plain English only.
+
 ## Pushing your changes
 
 - We use conventional commits to manage our commit messages. Please follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification when writing your commit messages.
