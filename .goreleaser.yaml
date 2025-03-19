@@ -34,7 +34,9 @@ sboms:
 upx:
   - enabled: true
 kos:
-  - tags:
+  - repositories:
+      - ghcr.io/djiit/gong
+    tags:
       - "{{.Version}}"
       - latest
     platforms:

@@ -29,7 +29,6 @@ jobs:
         with:
           args: release --clean
         env:
-          KO_DOCKER_REPO: ghcr.io/djiit/gong
           GITHUB_TOKEN: ${{ secrets.GH_EXTENSION_TOKEN }}
   gh:
     runs-on: ubuntu-latest
