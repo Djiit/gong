@@ -2,14 +2,13 @@ package ping
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"strings"
 
 	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/Djiit/gong/internal/integrations"
 	"github.com/Djiit/gong/internal/ping"
 	"github.com/Djiit/gong/internal/rules"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,23 +35,23 @@ var PingCmd = &cobra.Command{
 		if repository == "" {
 			detectedRepo, err := githubclient.GetCurrentRepository()
 			if err != nil {
-				log.Fatalf("Error detecting current repository: %v. Please specify a repository using the --repository flag.", err)
+				log.Fatal().Msgf("Error detecting current repository: %v. Please specify a repository using the --repository flag.", err)
 			}
 			if detectedRepo == "" {
-				log.Fatal("Could not detect current repository. Please specify a repository using the --repository flag.")
+				log.Fatal().Msg("Could not detect current repository. Please specify a repository using the --repository flag.")
 			}
 			repository = detectedRepo
-			fmt.Printf("Using detected repository: %s\n", repository)
+			log.Debug().Msgf("Using detected repository: %s", repository)
 		}
 
 		pr := viper.GetString("pr")
 		if pr == "" {
-			log.Fatal("PR number must be specified")
+			log.Fatal().Msg("PR number must be specified")
 		}
 
 		repoParts := strings.Split(repository, "/")
 		if len(repoParts) != 2 {
-			log.Fatalf("Invalid repository format. Expected owner/repo, got %s", repository)
+			log.Fatal().Msgf("Invalid repository format. Expected owner/repo, got %s", repository)
 		}
 		repoOwner = repoParts[0]
 		repoName = repoParts[1]
@@ -84,11 +83,11 @@ var PingCmd = &cobra.Command{
 		client := githubclient.NewClient(viper.GetString("github-token"))
 		reviewRequests, err := githubclient.GetReviewRequests(client, repoOwner, repoName, pr)
 		if err != nil {
-			log.Fatalf("Error retrieving review requests: %v", err)
+			log.Fatal().Msgf("Error retrieving review requests: %v", err)
 		}
 
 		if len(reviewRequests) == 0 {
-			fmt.Printf("No reviewers found for PR #%s.\n", pr)
+			log.Info().Msgf("No reviewers found for PR #%s.\n", pr)
 			return
 		}
 
@@ -140,7 +139,7 @@ func init() {
 	PingCmd.PersistentFlags().BoolVar(&enabled, "enabled", true, "Enable or disable pinging functionality (default: true)")
 	err := viper.BindPFlags(PingCmd.PersistentFlags())
 	if err != nil {
-		log.Fatalf("Error binding flags: %v", err)
+		log.Fatal().Msgf("Error binding flags: %v", err)
 	}
 	viper.SetDefault("delay", 0)
 	viper.SetDefault("enabled", true)

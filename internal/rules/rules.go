@@ -7,6 +7,7 @@ import (
 
 	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/Djiit/gong/internal/ping"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
@@ -92,46 +93,43 @@ func ParseIntegration(intgMap map[string]interface{}) ping.Integration {
 // ParseRules extracts rules configuration from viper
 func ParseRules() []Rule {
 	var ruleset []Rule
-	if viper.IsSet("rules") {
-		rulesConfig := viper.Get("rules")
+	rulesConfig := viper.Get("rules")
+	// If rules is a slice, process each rule
+	if rulesSlice, ok := rulesConfig.([]interface{}); ok {
+		for _, r := range rulesSlice {
+			if ruleMap, ok := r.(map[string]interface{}); ok {
+				rule := Rule{}
 
-		// If rules is a slice, process each rule
-		if rulesSlice, ok := rulesConfig.([]interface{}); ok {
-			for _, r := range rulesSlice {
-				if ruleMap, ok := r.(map[string]interface{}); ok {
-					rule := Rule{}
+				if matchName, ok := ruleMap["matchname"].(string); ok {
+					rule.MatchName = matchName
+				}
 
-					if matchName, ok := ruleMap["matchName"].(string); ok {
-						rule.MatchName = matchName
-					}
+				if delay, ok := ruleMap["delay"].(int); ok {
+					rule.Delay = delay
+				}
 
-					if delay, ok := ruleMap["delay"].(int); ok {
-						rule.Delay = delay
-					}
+				if enabled, ok := ruleMap["enabled"].(bool); ok {
+					rule.Enabled = enabled
+				}
 
-					if enabled, ok := ruleMap["enabled"].(bool); ok {
-						rule.Enabled = enabled
-					}
-
-					// Extract integrations if they exist
-					if integrations, ok := ruleMap["integrations"].([]interface{}); ok {
-						for _, intg := range integrations {
-							if intgMap, ok := intg.(map[string]interface{}); ok {
-								integration := ParseIntegration(intgMap)
-								if integration.Type != "" {
-									rule.Integrations = append(rule.Integrations, integration)
-								}
+				// Extract integrations if they exist
+				if integrations, ok := ruleMap["integrations"].([]interface{}); ok {
+					for _, intg := range integrations {
+						if intgMap, ok := intg.(map[string]interface{}); ok {
+							integration := ParseIntegration(intgMap)
+							if integration.Type != "" {
+								rule.Integrations = append(rule.Integrations, integration)
 							}
 						}
 					}
-
-					if rule.MatchName != "" { // Only add rules with a valid match pattern
-						ruleset = append(ruleset, rule)
-					}
+				}
+				if rule.MatchName != "" { // Only add rules with a valid match pattern
+					ruleset = append(ruleset, rule)
 				}
 			}
 		}
 	}
+	log.Debug().Msgf("Parsed rules: %v", ruleset)
 	return ruleset
 }
 

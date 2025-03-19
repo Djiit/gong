@@ -2,25 +2,34 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"strings"
 
 	"github.com/Djiit/gong/cmd/ping"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
 	cfgFile     string
-	verbose     bool
+	debug       bool
 	dryRun      bool
 	githubToken string
 	rootCmd     = &cobra.Command{
 		Use:     "gong",
 		Long:    "gong is a CLI tool to ping reviewers.",
 		Example: "gong",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if debug {
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			}
+
+			log.Debug().Msg("Using config file: " + viper.ConfigFileUsed())
+			log.Debug().Msgf("Config: %+v", viper.AllSettings())
+
+		},
 	}
 )
 
@@ -33,18 +42,22 @@ func Execute() error {
 }
 
 func init() {
-	// Initialize cobra
-	cobra.OnInitialize(initConfig)
+	// Init logging
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.gong.yaml)")
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub token")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Display more verbose output in console output. (default: false)")
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Display debug logs. (default: false)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Run in dry-run mode. (default: false)")
 	err := viper.BindPFlags(rootCmd.PersistentFlags())
 	if err != nil {
-		log.Fatalf("Error binding flags: %v", err)
+		log.Fatal().Msgf("Error binding flags: %v", err)
 	}
+
+	// Initialize cobra
+	cobra.OnInitialize(initConfig)
 
 	// Add subcommands
 	rootCmd.AddCommand(ping.PingCmd)
@@ -70,7 +83,8 @@ func initConfig() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Warn().Msg("No config file found or error reading config: " + err.Error())
 	}
 }

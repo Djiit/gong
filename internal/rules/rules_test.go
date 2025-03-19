@@ -293,7 +293,7 @@ func TestParseRules(t *testing.T) {
 			config: map[string]interface{}{
 				"rules": []interface{}{
 					map[string]interface{}{
-						"matchName": "test-user",
+						"matchname": "test-user",
 						"delay":     24,
 						"enabled":   true,
 						"integrations": []interface{}{
@@ -324,7 +324,7 @@ func TestParseRules(t *testing.T) {
 			config: map[string]interface{}{
 				"rules": []interface{}{
 					map[string]interface{}{
-						"matchName": "test-user",
+						"matchname": "test-user",
 						"delay":     24,
 						"enabled":   true,
 						"integrations": []interface{}{
