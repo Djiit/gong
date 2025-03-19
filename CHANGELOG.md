@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/Djiit/gong/compare/v0.1.2...v0.1.3) (2025-03-19)
+
+
+### Bug Fixes
+
+* split release in 2 jobs ([e79f15e](https://github.com/Djiit/gong/commit/e79f15e27c803e872bcb336237fcafdefa799875))
+* use log level instead of debug ([e8fde36](https://github.com/Djiit/gong/commit/e8fde363fadae22041fe0d4eac63e38e8aba1de1))
+
 ## [0.1.2](https://github.com/Djiit/gong/compare/v0.1.1...v0.1.2) (2025-03-19)
 
 
