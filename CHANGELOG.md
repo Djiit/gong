@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Djiit/gong/compare/v0.1.0...v0.1.1) (2025-03-19)
+
+
+### Bug Fixes
+
+* setup homebrew release ([0406b2a](https://github.com/Djiit/gong/commit/0406b2a3d02c90955e4a3b7d04f2a258cc6add9f))
+
 ## [0.1.0](https://github.com/Djiit/gong/compare/v0.0.1...v0.1.0) (2025-03-19)
 
 
