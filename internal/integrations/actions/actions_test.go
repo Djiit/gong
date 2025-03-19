@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -148,7 +149,11 @@ func TestWriteToGitHubOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			log.Fatalf("Error removing temp directory: %v", err)
+		}
+	}()
 
 	outputFile := filepath.Join(tempDir, "github-output")
 
@@ -232,7 +237,11 @@ func TestWriteToGitHubEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			log.Fatalf("Error removing temp directory: %v", err)
+		}
+	}()
 
 	envFile := filepath.Join(tempDir, "github-env")
 

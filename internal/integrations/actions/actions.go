@@ -9,6 +9,7 @@ import (
 
 	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/ping"
+	"github.com/rs/zerolog/log"
 )
 
 // Run executes the actions integration which writes reviewer information to GitHub Actions environment
@@ -35,18 +36,19 @@ func Run(ctx context.Context) {
 
 	// Write to GITHUB_OUTPUT
 	if outputFilePath != "" {
-		writeToGitHubOutput(outputFilePath, enabledReviewers, disabledReviewers)
+		err := writeToGitHubOutput(outputFilePath, enabledReviewers, disabledReviewers)
+		if err != nil {
+			log.Fatal().Msgf("Error writing to GITHUB_OUTPUT: %v\n", err)
+		}
 	}
 
 	// Write to GITHUB_ENV
 	if envFilePath != "" {
-		writeToGitHubEnv(envFilePath, enabledReviewers, disabledReviewers)
+		err := writeToGitHubEnv(envFilePath, enabledReviewers, disabledReviewers)
+		if err != nil {
+			log.Fatal().Msgf("Error writing to GITHUB_ENV: %v\n", err)
+		}
 	}
-
-	// Also print the information to stdout for visibility
-	outputInfo := formatOutput(enabledReviewers, disabledReviewers)
-	fmt.Println("GitHub Actions Integration results:")
-	fmt.Println(outputInfo)
 }
 
 // processRequests processes ping requests and separates them into enabled and disabled reviewers
@@ -84,7 +86,12 @@ func writeToGitHubOutput(filePath string, enabledReviewers, disabledReviewers []
 	if err != nil {
 		return fmt.Errorf("failed to open GITHUB_OUTPUT file: %w", err)
 	}
-	defer f.Close()
+
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Error().Msgf("Error closing file: %v", err)
+		}
+	}()
 
 	// Write comma-separated reviewers list
 	if _, err := f.WriteString(fmt.Sprintf("reviewers=%s\n", strings.Join(enabledReviewers, ","))); err != nil {
@@ -129,7 +136,12 @@ func writeToGitHubEnv(filePath string, enabledReviewers, disabledReviewers []str
 	if err != nil {
 		return fmt.Errorf("failed to open GITHUB_ENV file: %w", err)
 	}
-	defer f.Close()
+
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Error().Msgf("Error closing file: %v", err)
+		}
+	}()
 
 	// Write comma-separated reviewers list
 	if _, err := f.WriteString(fmt.Sprintf("GONG_REVIEWERS=%s\n", strings.Join(enabledReviewers, ","))); err != nil {
