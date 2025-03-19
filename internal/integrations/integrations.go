@@ -3,6 +3,7 @@ package integrations
 import (
 	"context"
 
+	"github.com/Djiit/gong/internal/integrations/actions"
 	"github.com/Djiit/gong/internal/integrations/comment"
 	"github.com/Djiit/gong/internal/integrations/slack"
 	"github.com/Djiit/gong/internal/integrations/stdout"
@@ -25,5 +26,9 @@ var Integrations = map[string]Integration{
 	"slack": {
 		Name: "Slack Integration",
 		Run:  slack.Run,
+	},
+	"actions": {
+		Name: "GitHub Actions Integration",
+		Run:  actions.Run,
 	},
 }
