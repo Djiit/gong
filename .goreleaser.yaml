@@ -51,3 +51,10 @@ kos:
       - darwin/amd64
       - darwin/arm64
     bare: true
+brews:
+  - homepage: "https://github.com/Djiit/gong"
+    description: "Gong"
+    repository:
+      owner: Djiit
+      name: homebrew-gong
+    skip_upload: auto

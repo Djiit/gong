@@ -31,7 +31,7 @@ jobs:
           args: release --clean
         env:
           KO_DOCKER_REPO: ghcr.io/djiit/gong
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GH_EXTENSION_TOKEN }}
       - name: Run GoReleaser (gh-gong)
         uses: goreleaser/goreleaser-action@v6
         with:
