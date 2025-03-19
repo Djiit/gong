@@ -32,7 +32,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
       - name: Run Unit Tests
         run: |
           go test -v -cover -coverprofile=coverage.out -json -timeout 300s -tags ci ./... | tee report.out

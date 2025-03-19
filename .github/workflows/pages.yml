@@ -3,6 +3,8 @@ name: Deploy Hugo site to Pages
 on:
   push:
     branches: ["main"]
+    paths:
+      - "docs/**"
   workflow_dispatch:
 
 permissions:
@@ -29,7 +31,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version-file: docs/go.mod
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v4
