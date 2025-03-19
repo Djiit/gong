@@ -9,6 +9,32 @@
 
 🛎️ gong is a tiny, work-in-progress, opinionated CLI for nudging/pinging reviewers on GitHub pull requests.
 
+## Installation
+
+gong can be installed in several ways:
+
+### Using Homebrew (preferred)
+
+```bash
+brew install Djiit/homebrew-gong/gong
+```
+
+### As a GitHub CLI extension
+
+```bash
+gh extension install Djiit/gh-gong
+```
+
+### Using Go
+
+```bash
+go install github.com/Djiit/gong@latest
+```
+
+### Direct download
+
+Download the appropriate binary for your platform from the [GitHub releases page](https://github.com/Djiit/gong/releases).
+
 ## Features
 
 Ping reviewers on GitHub pull requests on different platforms (github comment, slack message, etc.)

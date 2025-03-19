@@ -10,12 +10,10 @@ It is built using the [Cobra](https://github.com/spf13/cobra) library, which pro
 
 It leverages the GitHub API to fetch the list of reviewers for a given PR and sends them a reminder message via GitHub comments and multiple channels (Slack, Email, etc.).
 
+It is configurable via a configuration file that can be stored in the repository or in the user's home directory. Configuration contains global settings and an advanced rules system to determine when to ping reviewers.
+
 It is designed to be run as a GitHub Action, but can also be run locally. It can also be invoked as a GH CLI extension.
 
 It is tested using unit tests and integration tests. Whenever you are tasked to generate a new feature, please make sure to write tests for it.
 
 When writing comments or documentation, use plain English only.
-
-## Pushing your changes
-
-- We use conventional commits to manage our commit messages. Please follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification when writing your commit messages.

@@ -13,18 +13,24 @@ This section contains the complete technical documentation for Gong, including i
 
 Gong can be installed in several ways:
 
-### As an executable
+### Using Homebrew (preferred)
 
 ```bash
-# Using Go
-go install github.com/Djiit/gong@latest
-
-# Direct download of binaries from GitHub releases
-# Visit https://github.com/Djiit/gong/releases
+brew install Djiit/homebrew-gong/gong
 ```
 
 ### As a GitHub CLI extension
 
 ```bash
-gh extension install Djiit/gong
+gh extension install Djiit/gh-gong
 ```
+
+### Using Go
+
+```bash
+go install github.com/Djiit/gong@latest
+```
+
+### Direct download
+
+Download the appropriate binary for your platform from the [GitHub releases page](https://github.com/Djiit/gong/releases).
