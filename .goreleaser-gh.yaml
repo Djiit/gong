@@ -14,8 +14,7 @@ builds:
     goarch:
       - arm64
       - amd64
-    binary: gh-gong-{{.Os}}-{{.Arch}}
-    no_unique_dist_dir: true
+    binary: gh-gong
     ignore:
       - goos: linux
         goarch: arm64
@@ -29,10 +28,10 @@ release:
     name: gh-gong
   prerelease: auto
   mode: keep-existing
-  extra_files:
-   - glob: dist/gh-gong_*
-snapshot:
-  version_template: "{{ incpatch .Version }}-next"
+archives:
+  - name_template: "{{ .ProjectName}}-{{.Os}}-{{.Arch}}"
+    formats:
+      - binary
 changelog:
   disable: true
 upx:
