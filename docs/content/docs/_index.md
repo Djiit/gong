@@ -31,6 +31,18 @@ gh extension install Djiit/gh-gong
 go install github.com/Djiit/gong@latest
 ```
 
-### Direct download
+### Using Docker
+
+```bash
+docker pull ghcr.io/djiit/gong
+```
+
+You can then run gong using:
+
+```bash
+docker run ghcr.io/djiit/gong ping --help
+```
+
+### Using Binaries
 
 Download the appropriate binary for your platform from the [GitHub releases page](https://github.com/Djiit/gong/releases).

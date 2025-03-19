@@ -12,6 +12,7 @@ Gong automates pull request review reminders using a configurable ruleset to det
 
 - As a command-line tool
 - As a GitHub CLI extension
+- As a Docker container
 
 ## Key Features
 

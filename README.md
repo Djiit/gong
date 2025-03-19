@@ -31,13 +31,56 @@ gh extension install Djiit/gh-gong
 go install github.com/Djiit/gong@latest
 ```
 
-### Direct download
+### Using Docker
+
+```bash
+docker pull ghcr.io/djiit/gong
+```
+
+You can then run gong using:
+```bash
+docker run ghcr.io/djiit/gong ping --help
+```
+
+### Using binaries
 
 Download the appropriate binary for your platform from the [GitHub releases page](https://github.com/Djiit/gong/releases).
 
 ## Features
 
 Ping reviewers on GitHub pull requests on different platforms (github comment, slack message, etc.)
+
+### Integrations
+
+#### GitHub Actions Integration
+
+When used within GitHub Actions workflows, gong can output its results to GitHub Actions environment variables and workflow outputs for further processing. This integration writes to:
+
+- `GITHUB_OUTPUT`: Sets outputs for use in subsequent workflow steps
+  - `active_reviewers`: Comma-separated list of reviewers to ping
+  - `active_reviewers_count`: Number of reviewers to ping
+  - `has_active_reviewers`: Boolean indicating if there are reviewers to ping
+  - `disabled_reviewers`: Multiline list of reviewers that won't be pinged with status details
+
+- `GITHUB_ENV`: Sets environment variables for use in subsequent workflow steps
+  - `GONG_ACTIVE_REVIEWERS`: Comma-separated list of reviewers to ping
+  - `GONG_ACTIVE_REVIEWERS_COUNT`: Number of reviewers to ping
+  - `GONG_HAS_ACTIVE_REVIEWERS`: Boolean indicating if there are reviewers to ping
+
+Example workflow usage:
+
+```yaml
+steps:
+  - name: Run gong
+    id: gong
+    run: gong ping --repo ${{ github.repository }} --pr ${{ github.event.pull_request.number }} --integration actions
+
+  - name: Use gong outputs
+    if: steps.gong.outputs.has_active_reviewers == 'true'
+    run: |
+      echo "Pinging reviewers: ${{ steps.gong.outputs.active_reviewers }}"
+      echo "Total reviewers to ping: ${{ steps.gong.outputs.active_reviewers_count }}"
+```
 
 ### Rules-Based Delay System
 
