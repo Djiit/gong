@@ -14,7 +14,7 @@ import (
 
 var (
 	cfgFile     string
-	debug       bool
+	logLevel    string
 	dryRun      bool
 	githubToken string
 	rootCmd     = &cobra.Command{
@@ -22,13 +22,19 @@ var (
 		Long:    "gong is a CLI tool to ping reviewers.",
 		Example: "gong",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if debug {
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			levelMap := map[string]zerolog.Level{
+				"panic": 5,
+				"fatal": 4,
+				"error": 3,
+				"warn":  2,
+				"info":  1,
+				"debug": 0,
+				"trace": -1,
 			}
+			zerolog.SetGlobalLevel(levelMap[logLevel])
 
 			log.Debug().Msg("Using config file: " + viper.ConfigFileUsed())
-			log.Debug().Msgf("Config: %+v", viper.AllSettings())
-
+			log.Trace().Msgf("Config: %+v", viper.AllSettings())
 		},
 	}
 )
@@ -47,9 +53,9 @@ func init() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.gong.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "Config file (default is $HOME/.gong.yaml)")
 	rootCmd.PersistentFlags().StringVar(&githubToken, "github-token", "", "GitHub token")
-	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Display debug logs. (default: false)")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", "Log level. (default: info)")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Run in dry-run mode. (default: false)")
 	err := viper.BindPFlags(rootCmd.PersistentFlags())
 	if err != nil {
