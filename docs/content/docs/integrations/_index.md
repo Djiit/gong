@@ -5,8 +5,6 @@ title = 'Integrations'
 weight = 20
 +++
 
-# Integrations
-
 Gong supports multiple integration channels to notify reviewers about pending pull requests. These integrations can be configured globally or per rule in your configuration file.
 
 ## Available Integrations
