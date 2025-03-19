@@ -1,0 +1,6 @@
+baseURL: 'https://djiit.github.io/gong'
+languageCode: 'en-us'
+title: 'gong'
+module:
+  imports:
+    - path: github.com/imfing/hextra

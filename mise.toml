@@ -18,3 +18,13 @@ run = "golangci-lint run ./..."
 [tasks.docker]
 description = "Create a docker image using ko"
 run = "ko build main.go --push=false"
+
+[tasks.dev-docs]
+description = "Generate project documentation"
+run = "hugo server --buildDrafts --disableFastRender"
+dir = "docs"
+
+[tasks.build-docs]
+description = "Generate project documentation"
+run = "hugo build --gc --minify"
+dir = "docs"
