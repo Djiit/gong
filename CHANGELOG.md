@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/Djiit/gong/compare/v0.1.4...v0.1.5) (2025-03-19)
+
+
+### Bug Fixes
+
+* fix goreleaser settings ([314ccb0](https://github.com/Djiit/gong/commit/314ccb0e0adafefa5a46cf4514879831cd29a114))
+
 ## [0.1.4](https://github.com/Djiit/gong/compare/v0.1.3...v0.1.4) (2025-03-19)
 
 
