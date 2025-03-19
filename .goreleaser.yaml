@@ -10,6 +10,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - arm64
       - amd64
@@ -24,16 +25,6 @@ builds:
 release:
   prerelease: auto
   mode: keep-existing
-archives:
-  - name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_
-      {{- if eq .Os "darwin" }}Darwin_
-      {{- else if eq .Os "linux" }}Linux_
-      {{- else }}{{ .Os }}_{{ end }}
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else }}{{ .Arch }}{{ end }}
-    formats:
-      - tar.gz
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 changelog:

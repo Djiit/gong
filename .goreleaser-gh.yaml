@@ -10,10 +10,12 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     goarch:
       - arm64
       - amd64
-    binary: gh-gong
+    binary: gh-gong-{{.Os}}-{{.Arch}}
+    no_unique_dist_dir: true
     ignore:
       - goos: linux
         goarch: arm64
@@ -27,21 +29,11 @@ release:
     name: gh-gong
   prerelease: auto
   mode: keep-existing
-archives:
-  - name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_
-      {{- if eq .Os "darwin" }}Darwin_
-      {{- else if eq .Os "linux" }}Linux_
-      {{- else }}{{ .Os }}_{{ end }}
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else }}{{ .Arch }}{{ end }}
-    formats:
-      - tar.gz
+  extra_files:
+   - glob: dist/gh-gong_*
 snapshot:
   version_template: "{{ incpatch .Version }}-next"
 changelog:
   disable: true
-sboms:
-  - artifacts: archive
 upx:
   - enabled: true
