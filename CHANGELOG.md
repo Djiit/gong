@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Djiit/gong/compare/v0.1.1...v0.1.2) (2025-03-19)
+
+
+### Bug Fixes
+
+* add proper logger and fix rules ([bfc63aa](https://github.com/Djiit/gong/commit/bfc63aa823f685d6eebb4d1021c0756e2e9dd416))
+
 ## [0.1.1](https://github.com/Djiit/gong/compare/v0.1.0...v0.1.1) (2025-03-19)
 
 
