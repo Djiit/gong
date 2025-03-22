@@ -34,5 +34,7 @@ archives:
       - binary
 changelog:
   disable: true
+checksum:
+  disable: true
 upx:
   - enabled: true
