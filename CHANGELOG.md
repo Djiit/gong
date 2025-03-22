@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/Djiit/gong/compare/v0.1.5...v0.2.0) (2025-03-22)
+
+
+### Features
+
+* add actions integration ([70cfcbb](https://github.com/Djiit/gong/commit/70cfcbbf8b35f430b6874df94e64e4b3b799b3fe))
+* handle PR not found ([1eef0c7](https://github.com/Djiit/gong/commit/1eef0c77c530ba7172f19324b88ec171c0040414))
+
 ## [0.1.5](https://github.com/Djiit/gong/compare/v0.1.4...v0.1.5) (2025-03-19)
 
 
