@@ -2,12 +2,15 @@ package ping
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/Djiit/gong/internal/integrations"
 	"github.com/Djiit/gong/internal/ping"
 	"github.com/Djiit/gong/internal/rules"
+	"github.com/google/go-github/v69/github"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -78,11 +81,39 @@ var PingCmd = &cobra.Command{
 		}
 
 		ctx = context.WithValue(ctx, "integrations", globalIntegrations)
+		client := githubclient.NewClient(viper.GetString("github-token"))
+
+		prState, err := githubclient.GetPullRequestState(client, repoOwner, repoName, pr)
+		if err != nil {
+			// Check if the error is because the PR was not found
+			var githubErr *github.ErrorResponse
+			if errors.As(err, &githubErr) && githubErr.Response.StatusCode == http.StatusNotFound {
+				log.Info().Msgf("Pull Request #%s was not found in %s/%s. Please check if the PR number and repository are correct.", pr, repoOwner, repoName)
+				return
+			}
+			log.Fatal().Msgf("Error retrieving pull request state: %v", err)
+		}
+
+		if prState.IsClosed || prState.IsMerged {
+			statusMsg := "merged"
+			if prState.IsClosed {
+				statusMsg = "closed"
+			}
+			log.Info().Msgf("Pull Request #%s is %s. No need to ping reviewers.", pr, statusMsg)
+			return
+		}
+
+		log.Debug().Msgf("Pull Request #%s is open. Proceeding with reviewer checks.", pr)
 
 		// Get review requests
-		client := githubclient.NewClient(viper.GetString("github-token"))
 		reviewRequests, err := githubclient.GetReviewRequests(client, repoOwner, repoName, pr)
 		if err != nil {
+			// Check if the error is because the PR was not found
+			var githubErr *github.ErrorResponse
+			if errors.As(err, &githubErr) && githubErr.Response.StatusCode == http.StatusNotFound {
+				log.Info().Msgf("Pull Request #%s was not found in %s/%s. Please check if the PR number and repository are correct.", pr, repoOwner, repoName)
+				return
+			}
 			log.Fatal().Msgf("Error retrieving review requests: %v", err)
 		}
 

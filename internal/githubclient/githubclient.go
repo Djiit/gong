@@ -26,6 +26,15 @@ type ReviewRequest struct {
 	IsTeam bool
 }
 
+// PullRequestState représente l'état d'une Pull Request
+type PullRequestState struct {
+	IsOpen    bool
+	IsMerged  bool
+	IsClosed  bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 // GetCurrentRepository detects the current repository from the local git context
 // Returns the repository in the format "owner/repo" or an empty string and error if detection fails
 func GetCurrentRepository() (string, error) {
@@ -37,6 +46,31 @@ func GetCurrentRepository() (string, error) {
 
 	// Return in the format "owner/repo"
 	return repoInfo.Owner + "/" + repoInfo.Name, nil
+}
+
+// GetPullRequestState récupère l'état courant d'une Pull Request
+func GetPullRequestState(client *github.Client, owner, repo string, prNumber string) (*PullRequestState, error) {
+	ctx := context.Background()
+
+	prNum, err := strconv.Atoi(prNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNum)
+	if err != nil {
+		return nil, err
+	}
+
+	state := &PullRequestState{
+		IsOpen:    pr.GetState() == "open",
+		IsMerged:  pr.GetMerged(),
+		IsClosed:  pr.GetState() == "closed" && !pr.GetMerged(),
+		CreatedAt: pr.GetCreatedAt().Time,
+		UpdatedAt: pr.GetUpdatedAt().Time,
+	}
+
+	return state, nil
 }
 
 func GetReviewRequests(client *github.Client, owner, repo string, prNumber string) ([]ReviewRequest, error) {
