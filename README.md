@@ -46,6 +46,10 @@ docker run ghcr.io/djiit/gong ping --help
 
 Download the appropriate binary for your platform from the [GitHub releases page](https://github.com/Djiit/gong/releases).
 
+### As a GitHub Action
+
+See the [gong Action](https://github.com/marketplace/actions/gong-action).
+
 ## Features
 
 Ping reviewers on GitHub pull requests on different platforms (github comment, slack message, etc.)
