@@ -1,24 +1,31 @@
+version: "2"
 run:
-  timeout: 5m
   tests: true
-
 linters:
-  disable-all: true
+  default: none
   enable:
-    - errcheck # Check for unchecked errors
-    - gosimple # Suggests code simplifications
-    - govet # Reports suspicious constructs
-    - ineffassign # Detects unused assignments
-    - staticcheck # Go static analysis tool
-    - typecheck # Like the front-end of a Go compiler
-    - unused # Checks for unused constants, variables, functions and types
-
-linters-settings:
-  staticcheck:
-    checks:
-      - _SA1029
-    
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+  settings:
+    staticcheck:
+      checks:
+        - _SA1029
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
