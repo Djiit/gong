@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/githubclient"
@@ -19,13 +18,6 @@ import (
 // DefaultTemplate is the default template used for comment output
 const DefaultTemplate = `Awaiting reviews from: {{ range $i, $r := .ActiveReviewers }}{{ if $i }}, {{ end }}@{{ $r }}{{ end }}
 <!-- gong -->`
-
-// TemplateData holds the data for template rendering
-type TemplateData struct {
-	PingRequests      []ping.PingRequest
-	ActiveReviewers   []string
-	DisabledReviewers []string
-}
 
 func Run(ctx context.Context) {
 	pingRequests := ctx.Value("pingRequests").([]ping.PingRequest)
@@ -101,20 +93,18 @@ func alreadyCommented(ctx context.Context, client *github.Client, owner, repo st
 	}
 
 	for _, comment := range comments {
-		if strings.Contains(*comment.Body, "<!-- gong -->") {
+		if strings.Contains(comment.GetBody(), "<!-- gong -->") {
 			return true
 		}
 	}
+
 	return false
 }
 
 func postComment(ctx context.Context, client *github.Client, owner, repo string, prNumber int, body string) error {
-	prComment := &github.IssueComment{Body: &body}
-	_, _, err := client.Issues.CreateComment(ctx, owner, repo, prNumber, prComment)
-	if err != nil {
-		return fmt.Errorf("failed to post comment: %w", err)
-	}
-	return nil
+	comment := &github.IssueComment{Body: github.String(body)}
+	_, _, err := client.Issues.CreateComment(ctx, owner, repo, prNumber, comment)
+	return err
 }
 
 func formatWithTemplate(pingRequests []ping.PingRequest, templateStr string) (string, error) {
@@ -122,8 +112,8 @@ func formatWithTemplate(pingRequests []ping.PingRequest, templateStr string) (st
 		return "No pending review requests.\n<!-- gong -->", nil
 	}
 
-	// Prepare template data
-	data := prepareTemplateData(pingRequests)
+	// Use the shared template data preparation
+	data := format.PrepareTemplateData(pingRequests, "", "", "", "", false)
 
 	// Parse template
 	tmpl, err := template.New("comment").Parse(templateStr)
@@ -138,38 +128,4 @@ func formatWithTemplate(pingRequests []ping.PingRequest, templateStr string) (st
 	}
 
 	return buf.String(), nil
-}
-
-func prepareTemplateData(pingRequests []ping.PingRequest) TemplateData {
-	var activeReviewers []string
-	var disabledReviewers []string
-
-	for _, req := range pingRequests {
-		timeSinceRequest := time.Since(req.Req.On).Round(time.Hour)
-		formattedDuration := format.FormatDuration(timeSinceRequest)
-
-		reviewer := req.Req.From
-		if req.Req.IsTeam {
-			reviewer += " (team)"
-		}
-
-		reviewerInfo := fmt.Sprintf("%s (%s ago, delay: %ds)",
-			reviewer, formattedDuration, req.Delay)
-
-		if req.ShouldPing {
-			activeReviewers = append(activeReviewers, reviewer) // Just the name for @ mentions
-		} else {
-			status := "waiting"
-			if !req.Enabled {
-				status = "disabled"
-			}
-			disabledReviewers = append(disabledReviewers, fmt.Sprintf("%s, status: %s", reviewerInfo, status))
-		}
-	}
-
-	return TemplateData{
-		PingRequests:      pingRequests,
-		ActiveReviewers:   activeReviewers,
-		DisabledReviewers: disabledReviewers,
-	}
 }

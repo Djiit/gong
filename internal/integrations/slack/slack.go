@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"text/template"
-	"time"
 
 	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/ping"
@@ -17,17 +16,6 @@ import (
 // DefaultTemplate is the default template used for Slack output
 const DefaultTemplate = `PR #{{.PRNumber}} is waiting for review: <{{.PRURL}}|{{.RepoOwner}}/{{.RepoName}}#{{.PRNumber}}>
 {{ if .ActiveReviewers }}Reviewers: {{ range $i, $r := .ActiveReviewers }}{{ if $i }}, {{ end }}{{ $r }}{{ end }}{{ end }}`
-
-// TemplateData holds the data for template rendering
-type TemplateData struct {
-	PingRequests      []ping.PingRequest
-	ActiveReviewers   []string
-	DisabledReviewers []string
-	PRNumber          string
-	RepoOwner         string
-	RepoName          string
-	PRURL             string
-}
 
 func Run(ctx context.Context) {
 	pingRequests := ctx.Value("pingRequests").([]ping.PingRequest)
@@ -107,8 +95,8 @@ func formatWithTemplate(pingRequests []ping.PingRequest, templateStr, repoOwner,
 		return "No pending review requests.", nil
 	}
 
-	// Prepare template data
-	data := prepareTemplateData(pingRequests, repoOwner, repoName, prNumber, prURL)
+	// Use the shared template data preparation
+	data := format.PrepareTemplateData(pingRequests, repoOwner, repoName, prNumber, prURL, false)
 
 	// Parse template
 	tmpl, err := template.New("slack").Parse(templateStr)
@@ -123,44 +111,6 @@ func formatWithTemplate(pingRequests []ping.PingRequest, templateStr, repoOwner,
 	}
 
 	return buf.String(), nil
-}
-
-func prepareTemplateData(pingRequests []ping.PingRequest, repoOwner, repoName, prNumber, prURL string) TemplateData {
-	var activeReviewers []string
-	var disabledReviewers []string
-
-	for _, req := range pingRequests {
-		timeSinceRequest := time.Since(req.Req.On).Round(time.Hour)
-		formattedDuration := format.FormatDuration(timeSinceRequest)
-
-		reviewer := req.Req.From
-		if req.Req.IsTeam {
-			reviewer += " (team)"
-		}
-
-		reviewerInfo := fmt.Sprintf("%s (%s ago, delay: %ds)",
-			reviewer, formattedDuration, req.Delay)
-
-		if req.ShouldPing {
-			activeReviewers = append(activeReviewers, reviewer) // Just the name for mentions
-		} else {
-			status := "waiting"
-			if !req.Enabled {
-				status = "disabled"
-			}
-			disabledReviewers = append(disabledReviewers, fmt.Sprintf("%s, status: %s", reviewerInfo, status))
-		}
-	}
-
-	return TemplateData{
-		PingRequests:      pingRequests,
-		ActiveReviewers:   activeReviewers,
-		DisabledReviewers: disabledReviewers,
-		PRNumber:          prNumber,
-		RepoOwner:         repoOwner,
-		RepoName:          repoName,
-		PRURL:             prURL,
-	}
 }
 
 func sendSlackMessage(channel, webhookURL, prURL, prNumber, message string) {

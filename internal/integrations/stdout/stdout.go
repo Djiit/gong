@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"text/template"
-	"time"
 
 	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/ping"
@@ -24,13 +23,6 @@ Not pinging: {{ range $i, $r := .DisabledReviewers }}{{ if $i }}, {{ end }}{{ $r
 No pending review requests.
 {{- end -}}
 `
-
-// TemplateData holds the data for template rendering
-type TemplateData struct {
-	PingRequests      []ping.PingRequest
-	ActiveReviewers   []string
-	DisabledReviewers []string
-}
 
 func Run(ctx context.Context) {
 	pingRequests := ctx.Value("pingRequests").([]ping.PingRequest)
@@ -80,8 +72,8 @@ func formatWithTemplate(pingRequests []ping.PingRequest, templateStr string) (st
 		return "No pending review requests.", nil
 	}
 
-	// Prepare template data
-	data := prepareTemplateData(pingRequests)
+	// Use the shared template data preparation with full info
+	data := format.PrepareTemplateData(pingRequests, "", "", "", "", true)
 
 	// Parse template
 	tmpl, err := template.New("stdout").Parse(templateStr)
@@ -96,38 +88,4 @@ func formatWithTemplate(pingRequests []ping.PingRequest, templateStr string) (st
 	}
 
 	return buf.String(), nil
-}
-
-func prepareTemplateData(pingRequests []ping.PingRequest) TemplateData {
-	var activeReviewers []string
-	var disabledReviewers []string
-
-	for _, req := range pingRequests {
-		timeSinceRequest := time.Since(req.Req.On).Round(time.Hour)
-		formattedDuration := format.FormatDuration(timeSinceRequest)
-
-		reviewer := req.Req.From
-		if req.Req.IsTeam {
-			reviewer += " (team)"
-		}
-
-		reviewerInfo := fmt.Sprintf("%s (%s ago, delay: %ds)",
-			reviewer, formattedDuration, req.Delay)
-
-		if req.ShouldPing {
-			activeReviewers = append(activeReviewers, reviewerInfo)
-		} else {
-			status := "waiting"
-			if !req.Enabled {
-				status = "disabled"
-			}
-			disabledReviewers = append(disabledReviewers, fmt.Sprintf("%s, status: %s", reviewerInfo, status))
-		}
-	}
-
-	return TemplateData{
-		PingRequests:      pingRequests,
-		ActiveReviewers:   activeReviewers,
-		DisabledReviewers: disabledReviewers,
-	}
 }
