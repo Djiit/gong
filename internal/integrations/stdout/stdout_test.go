@@ -247,10 +247,14 @@ func TestRun(t *testing.T) {
 			Run(ctx)
 
 			// Restore stdout and get captured output
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatal(err)
+			}
 			os.Stdout = oldStdout
 			var buf strings.Builder
-			io.Copy(&buf, r)
+			if _, err := io.Copy(&buf, r); err != nil {
+				t.Fatal(err)
+			}
 			output := strings.TrimSpace(buf.String())
 
 			// Check output

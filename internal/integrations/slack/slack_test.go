@@ -2,6 +2,7 @@ package slack
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,7 +23,10 @@ func TestRun(t *testing.T) {
 		serverCalled = true
 		// Read request body
 		buf := make([]byte, r.ContentLength)
-		r.Body.Read(buf)
+		_, err := r.Body.Read(buf)
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
 		capturedRequest = buf
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -389,7 +393,10 @@ func TestRunWithTemplate(t *testing.T) {
 		serverCalled = true
 		// Read request body
 		buf := make([]byte, r.ContentLength)
-		r.Body.Read(buf)
+		_, err := r.Body.Read(buf)
+		if err != nil && err != io.EOF {
+			t.Fatal(err)
+		}
 		capturedRequest = buf
 		w.WriteHeader(http.StatusOK)
 	}))
