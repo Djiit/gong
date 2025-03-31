@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/Djiit/gong/internal/ping"
 )
@@ -190,7 +191,7 @@ func TestPrepareTemplateData(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			data := prepareTemplateData(tc.requests)
+			data := format.PrepareTemplateData(tc.requests, "", "", "", "", true)
 
 			if len(data.ActiveReviewers) != tc.expectedActiveCount {
 				t.Errorf("Expected %d active reviewers, got %d", tc.expectedActiveCount, len(data.ActiveReviewers))

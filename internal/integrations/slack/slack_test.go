@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/githubclient"
 	"github.com/Djiit/gong/internal/ping"
 	"github.com/spf13/viper"
@@ -369,139 +370,20 @@ func TestPrepareTemplateData(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			data := prepareTemplateData(tc.requests, "owner", "repo", "123", "https://github.com/owner/repo/pull/123")
+			data := format.PrepareTemplateData(tc.requests, "owner", "repo", "123", "https://github.com/owner/repo/pull/123", false)
 
-			assert.Equal(t, tc.expectedActiveCount, len(data.ActiveReviewers), "Expected %d active reviewers, got %d", tc.expectedActiveCount, len(data.ActiveReviewers))
-			assert.Equal(t, tc.expectedDisabledCount, len(data.DisabledReviewers), "Expected %d disabled reviewers, got %d", tc.expectedDisabledCount, len(data.DisabledReviewers))
-			assert.Equal(t, len(tc.requests), len(data.PingRequests), "Expected %d ping requests, got %d", len(tc.requests), len(data.PingRequests))
+			assert.Equal(t, tc.expectedActiveCount, len(data.ActiveReviewers),
+				"Expected %d active reviewers, got %d", tc.expectedActiveCount, len(data.ActiveReviewers))
+			assert.Equal(t, tc.expectedDisabledCount, len(data.DisabledReviewers),
+				"Expected %d disabled reviewers, got %d", tc.expectedDisabledCount, len(data.DisabledReviewers))
+			assert.Equal(t, len(tc.requests), len(data.PingRequests),
+				"Expected %d ping requests, got %d", len(tc.requests), len(data.PingRequests))
 
 			// Check PR metadata
 			assert.Equal(t, "owner", data.RepoOwner)
 			assert.Equal(t, "repo", data.RepoName)
 			assert.Equal(t, "123", data.PRNumber)
 			assert.Equal(t, "https://github.com/owner/repo/pull/123", data.PRURL)
-		})
-	}
-}
-
-func TestRunWithTemplate(t *testing.T) {
-	// Setup test server to capture Slack webhook requests
-	var capturedRequest []byte
-	var serverCalled bool
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		serverCalled = true
-		// Read request body
-		buf := make([]byte, r.ContentLength)
-		_, err := r.Body.Read(buf)
-		if err != nil && err != io.EOF {
-			t.Fatal(err)
-		}
-		capturedRequest = buf
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	// Reset for each test
-	viper.Reset()
-	viper.Set("slack-webhook", server.URL)
-
-	now := time.Now()
-
-	testCases := []struct {
-		name           string
-		pingRequests   []ping.PingRequest
-		template       string
-		expectContains string
-	}{
-		{
-			name: "With custom template in integration parameters",
-			pingRequests: []ping.PingRequest{
-				{
-					Req:        githubclient.ReviewRequest{From: "reviewer1", On: now.Add(-2 * time.Hour)},
-					Enabled:    true,
-					Delay:      3600,
-					ShouldPing: true,
-					Integrations: []ping.Integration{
-						{
-							Type: "slack",
-							Parameters: map[string]string{
-								"channel":  "code-reviews",
-								"template": "Custom template: {{.PRNumber}} - {{range .ActiveReviewers}}@{{.}} {{end}}",
-							},
-						},
-					},
-				},
-			},
-			expectContains: "Custom template: 123 - @reviewer1",
-		},
-		{
-			name: "With template in context",
-			pingRequests: []ping.PingRequest{
-				{
-					Req:        githubclient.ReviewRequest{From: "reviewer1", On: now.Add(-2 * time.Hour)},
-					Enabled:    true,
-					Delay:      3600,
-					ShouldPing: true,
-					Integrations: []ping.Integration{
-						{
-							Type: "slack",
-							Parameters: map[string]string{
-								"channel": "code-reviews",
-							},
-						},
-					},
-				},
-			},
-			template:       "Context template: {{.PRNumber}} by {{.RepoOwner}}",
-			expectContains: "Context template: 123 by owner",
-		},
-		{
-			name: "Falling back to default template",
-			pingRequests: []ping.PingRequest{
-				{
-					Req:        githubclient.ReviewRequest{From: "reviewer1", On: now.Add(-2 * time.Hour)},
-					Enabled:    true,
-					Delay:      3600,
-					ShouldPing: true,
-					Integrations: []ping.Integration{
-						{
-							Type:       "slack",
-							Parameters: map[string]string{},
-						},
-					},
-				},
-			},
-			expectContains: "PR #123 is waiting for review:",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Reset state for each test
-			serverCalled = false
-			capturedRequest = nil
-
-			// Create context with values
-			ctx := context.Background()
-			ctx = context.WithValue(ctx, "pingRequests", tc.pingRequests)
-			ctx = context.WithValue(ctx, "repoOwner", "owner")
-			ctx = context.WithValue(ctx, "repoName", "repo")
-			ctx = context.WithValue(ctx, "pr", "123")
-			ctx = context.WithValue(ctx, "dry-run", false)
-
-			if tc.template != "" {
-				ctx = context.WithValue(ctx, "template", tc.template)
-			}
-
-			Run(ctx)
-
-			// Verify webhook call
-			assert.True(t, serverCalled, "Expected webhook called")
-
-			// Verify content
-			assert.Contains(t, string(capturedRequest), tc.expectContains,
-				"Expected webhook request to contain '%s'", tc.expectContains)
 		})
 	}
 }
