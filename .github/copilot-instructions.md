@@ -17,3 +17,19 @@ It is designed to be run as a GitHub Action, but can also be run locally. It can
 It is tested using unit tests and integration tests. Whenever you are tasked to generate a new feature, please make sure to write tests for it.
 
 When writing comments or documentation, use plain English only.
+
+## Testing your work
+
+You can validate your work by running the following command:
+
+Running the linter:
+
+```bash
+mise r ling
+```
+
+Running the tests:
+
+```bash
+mise r test
+```

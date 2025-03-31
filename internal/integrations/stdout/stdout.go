@@ -1,68 +1,91 @@
 package stdout
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"strings"
-	"time"
+	"text/template"
 
 	"github.com/Djiit/gong/internal/format"
 	"github.com/Djiit/gong/internal/ping"
 )
 
+// DefaultTemplate is the default template used for stdout output
+const DefaultTemplate = `{{- if .ActiveReviewers -}}
+Pinging: {{ range $i, $r := .ActiveReviewers }}{{ if $i }}, {{ end }}{{ $r }}{{ end }}
+{{- end -}}
+{{ if and .ActiveReviewers .DisabledReviewers }}
+{{ end }}
+{{- if .DisabledReviewers -}}
+Not pinging: {{ range $i, $r := .DisabledReviewers }}{{ if $i }}, {{ end }}{{ $r }}{{ end -}}
+{{- end -}}
+{{- if and (not .ActiveReviewers) (not .DisabledReviewers) -}}
+No pending review requests.
+{{- end -}}
+`
+
 func Run(ctx context.Context) {
 	pingRequests := ctx.Value("pingRequests").([]ping.PingRequest)
 	isDryRun := ctx.Value("dry-run").(bool)
+
+	// Get template parameter from integrations config
+	var templateStr string
+
+	// First check if there's a template in the integration parameters
+	if len(pingRequests) > 0 {
+		for _, intg := range pingRequests[0].Integrations {
+			if intg.Type == "stdout" {
+				// Look for template parameter
+				if tmpl, ok := intg.Parameters["template"]; ok && tmpl != "" {
+					templateStr = tmpl
+					break
+				}
+			}
+		}
+	}
+
+	// If no template found in integration parameters, try context
+	if templateStr == "" {
+		if val, ok := ctx.Value("template").(string); ok && val != "" {
+			templateStr = val
+		} else {
+			templateStr = DefaultTemplate
+		}
+	}
 
 	if isDryRun {
 		fmt.Println("[DRY RUN] Would output reviewer information to stdout")
 		return
 	}
 
-	output := formatPingRequests(pingRequests)
+	output, err := formatWithTemplate(pingRequests, templateStr)
+	if err != nil {
+		fmt.Printf("Error formatting output with template: %v\n", err)
+		return
+	}
+
 	fmt.Println(output)
 }
 
-func formatPingRequests(pingRequests []ping.PingRequest) string {
+func formatWithTemplate(pingRequests []ping.PingRequest, templateStr string) (string, error) {
 	if len(pingRequests) == 0 {
-		return "No pending review requests."
+		return "No pending review requests.", nil
 	}
 
-	var activeReviewers []string
-	var disabledReviewers []string
+	// Use the shared template data preparation with full info
+	data := format.PrepareTemplateData(pingRequests, "", "", "", "", true)
 
-	for _, req := range pingRequests {
-		timeSinceRequest := time.Since(req.Req.On).Round(time.Hour)
-		formattedDuration := format.FormatDuration(timeSinceRequest)
-
-		reviewer := req.Req.From
-		if req.Req.IsTeam {
-			reviewer += " (team)"
-		}
-
-		reviewerInfo := fmt.Sprintf("%s (%s ago, delay: %ds)",
-			reviewer, formattedDuration, req.Delay)
-
-		if req.ShouldPing {
-			activeReviewers = append(activeReviewers, reviewerInfo)
-		} else {
-			status := "waiting"
-			if !req.Enabled {
-				status = "disabled"
-			}
-			disabledReviewers = append(disabledReviewers, fmt.Sprintf("%s, status: %s", reviewerInfo, status))
-		}
+	// Parse template
+	tmpl, err := template.New("stdout").Parse(templateStr)
+	if err != nil {
+		return "", fmt.Errorf("template parsing error: %w", err)
 	}
 
-	var result strings.Builder
-
-	if len(activeReviewers) > 0 {
-		result.WriteString(fmt.Sprintf("Pinging: %s\n", strings.Join(activeReviewers, ", ")))
+	// Execute template
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("template execution error: %w", err)
 	}
 
-	if len(disabledReviewers) > 0 {
-		result.WriteString(fmt.Sprintf("Not pinging: %s", strings.Join(disabledReviewers, ", ")))
-	}
-
-	return result.String()
+	return buf.String(), nil
 }
