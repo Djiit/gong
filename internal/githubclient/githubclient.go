@@ -21,9 +21,10 @@ func NewClient(githubToken string) *github.Client {
 }
 
 type ReviewRequest struct {
-	From   string
-	On     time.Time
-	IsTeam bool
+	From    string
+	On      time.Time
+	IsTeam  bool
+	PRTitle string // Added PR title field
 }
 
 // PullRequestState représente l'état d'une Pull Request
@@ -83,6 +84,13 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 		return nil, err
 	}
 
+	// Get the PR to retrieve its title
+	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNum)
+	if err != nil {
+		return nil, err
+	}
+	prTitle := pr.GetTitle()
+
 	reviewRequests, _, err := client.PullRequests.ListReviewers(ctx, owner, repo, prNum, nil)
 	if err != nil {
 		return nil, err
@@ -122,9 +130,10 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 			timestamp = time.Now()
 		}
 		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
-			From:   login,
-			On:     timestamp,
-			IsTeam: false,
+			From:    login,
+			On:      timestamp,
+			IsTeam:  false,
+			PRTitle: prTitle,
 		})
 	}
 
@@ -137,9 +146,10 @@ func GetReviewRequests(client *github.Client, owner, repo string, prNumber strin
 			timestamp = time.Now()
 		}
 		reviewRequestsArray = append(reviewRequestsArray, ReviewRequest{
-			From:   teamName,
-			On:     timestamp,
-			IsTeam: true,
+			From:    teamName,
+			On:      timestamp,
+			IsTeam:  true,
+			PRTitle: prTitle,
 		})
 	}
 

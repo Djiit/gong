@@ -415,3 +415,217 @@ func TestParseRules(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchTitleRule(t *testing.T) {
+	timeNow = func() time.Time { return time.Date(2023, 10, 1, 0, 0, 0, 0, time.UTC) }
+	defer func() { timeNow = time.Now }()
+
+	// Create a context with global settings
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, "delay", 0)
+	ctx = context.WithValue(ctx, "enabled", true)
+	ctx = context.WithValue(ctx, "integrations", []ping.Integration{
+		{Type: "stdout", Parameters: map[string]string{}},
+	})
+
+	// Create test review requests with different PR titles
+	requests := []githubclient.ReviewRequest{
+		{From: "reviewer1", PRTitle: "feat: add new feature", On: timeNow().Add(-2 * time.Hour)},
+		{From: "reviewer1", PRTitle: "fix: bug fix", On: timeNow().Add(-2 * time.Hour)},
+		{From: "reviewer2", PRTitle: "docs: update documentation", On: timeNow().Add(-1 * time.Hour)},
+		{From: "reviewer3", PRTitle: "chore: update dependencies", On: timeNow().Add(-3 * time.Hour)},
+	}
+
+	// Test rules for matchTitle
+	tests := []struct {
+		name         string
+		rules        []Rule
+		expectations map[string]bool // Maps PR title to expected ShouldPing value
+	}{
+		{
+			name: "Match by title pattern only",
+			rules: []Rule{
+				{MatchTitle: "feat: *", Delay: 3600, Enabled: true},
+				{MatchTitle: "fix: *", Delay: 86400, Enabled: true},
+			},
+			expectations: map[string]bool{
+				"feat: add new feature":      true,  // Matched first rule, delay < time passed
+				"fix: bug fix":               false, // Matched second rule, delay > time passed
+				"docs: update documentation": true,  // Not matched by any rule, uses global delay (0)
+				"chore: update dependencies": true,  // Not matched by any rule, uses global delay (0)
+			},
+		},
+		{
+			name: "Match by both name and title",
+			rules: []Rule{
+				{MatchName: "reviewer1", MatchTitle: "feat: *", Delay: 3600, Enabled: true},
+				{MatchName: "reviewer2", MatchTitle: "docs: *", Delay: 0, Enabled: false},
+			},
+			expectations: map[string]bool{
+				"feat: add new feature":      true,  // Matches first rule, delay < time passed
+				"fix: bug fix":               true,  // reviewer1 but title doesn't match, uses global (enabled,delay=0)
+				"docs: update documentation": false, // Matches second rule (disabled)
+				"chore: update dependencies": true,  // Not matched by any rule, uses global settings
+			},
+		},
+		{
+			name: "Multiple title patterns",
+			rules: []Rule{
+				{MatchTitle: "feat: *", Delay: 3600, Enabled: true},
+				{MatchTitle: "fix: *", Delay: 86400, Enabled: true},
+				{MatchTitle: "docs: *", Delay: 0, Enabled: false},
+				{MatchTitle: "chore: *", Delay: 0, Enabled: true},
+			},
+			expectations: map[string]bool{
+				"feat: add new feature":      true,  // Matched by first rule
+				"fix: bug fix":               false, // Matched by second rule
+				"docs: update documentation": false, // Matched by third rule (disabled)
+				"chore: update dependencies": true,  // Matched by fourth rule
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ApplyRules(ctx, requests, tt.rules)
+
+			// Check if each result has the expected ShouldPing value based on its PRTitle
+			for _, r := range result {
+				expectedShouldPing, exists := tt.expectations[r.Req.PRTitle]
+				if !exists {
+					t.Errorf("No expectation found for PR title %q", r.Req.PRTitle)
+					continue
+				}
+				assert.Equal(t, expectedShouldPing, r.ShouldPing, "For PR title %q", r.Req.PRTitle)
+			}
+		})
+	}
+}
+
+func TestParseRulesWithMatchTitle(t *testing.T) {
+	tests := []struct {
+		name          string
+		config        map[string]interface{}
+		expectedRules []Rule
+	}{
+		{
+			name: "Rules with matchTitle",
+			config: map[string]interface{}{
+				"rules": []interface{}{
+					map[string]interface{}{
+						"matchtitle": "feat: *",
+						"delay":      24,
+						"enabled":    true,
+					},
+				},
+			},
+			expectedRules: []Rule{
+				{
+					MatchTitle: "feat: *",
+					Delay:      24,
+					Enabled:    true,
+				},
+			},
+		},
+		{
+			name: "Rules with both matchName and matchTitle",
+			config: map[string]interface{}{
+				"rules": []interface{}{
+					map[string]interface{}{
+						"matchname":  "test-user",
+						"matchtitle": "fix: *",
+						"delay":      48,
+						"enabled":    true,
+					},
+				},
+			},
+			expectedRules: []Rule{
+				{
+					MatchName:  "test-user",
+					MatchTitle: "fix: *",
+					Delay:      48,
+					Enabled:    true,
+				},
+			},
+		},
+		{
+			name: "Rules with only matchTitle but no matchName",
+			config: map[string]interface{}{
+				"rules": []interface{}{
+					map[string]interface{}{
+						"matchtitle": "docs: *",
+						"delay":      12,
+						"enabled":    false,
+					},
+				},
+			},
+			expectedRules: []Rule{
+				{
+					MatchTitle: "docs: *",
+					Delay:      12,
+					Enabled:    false,
+				},
+			},
+		},
+		{
+			name: "Mixed rules with different match conditions",
+			config: map[string]interface{}{
+				"rules": []interface{}{
+					map[string]interface{}{
+						"matchname": "user1",
+						"delay":     24,
+						"enabled":   true,
+					},
+					map[string]interface{}{
+						"matchtitle": "feat: *",
+						"delay":      36,
+						"enabled":    true,
+					},
+					map[string]interface{}{
+						"matchname":  "user2",
+						"matchtitle": "fix: *",
+						"delay":      48,
+						"enabled":    false,
+					},
+				},
+			},
+			expectedRules: []Rule{
+				{
+					MatchName: "user1",
+					Delay:     24,
+					Enabled:   true,
+				},
+				{
+					MatchTitle: "feat: *",
+					Delay:      36,
+					Enabled:    true,
+				},
+				{
+					MatchName:  "user2",
+					MatchTitle: "fix: *",
+					Delay:      48,
+					Enabled:    false,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Reset()
+			for k, v := range tt.config {
+				viper.Set(k, v)
+			}
+
+			result := ParseRules()
+			assert.Equal(t, len(tt.expectedRules), len(result))
+
+			for i, rule := range tt.expectedRules {
+				assert.Equal(t, rule.MatchName, result[i].MatchName)
+				assert.Equal(t, rule.MatchTitle, result[i].MatchTitle)
+				assert.Equal(t, rule.Delay, result[i].Delay)
+				assert.Equal(t, rule.Enabled, result[i].Enabled)
+			}
+		})
+	}
+}

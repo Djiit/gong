@@ -17,12 +17,14 @@ var timeNow = time.Now
 // Rule represents a rule for matching reviewers with custom delays
 type Rule struct {
 	MatchName    string
+	MatchTitle   string
 	Delay        int
 	Enabled      bool
 	Integrations []ping.Integration // List of integrations for this rule
 }
 
 // Each rule can override the global delay for specific reviewers matching the glob pattern
+// or PR titles matching the glob pattern.
 // It also updates the Delay, Enabled, ShouldPing, and Integrations field for each request.
 func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rules []Rule) []ping.PingRequest {
 	var pingRequests []ping.PingRequest
@@ -47,7 +49,28 @@ func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rule
 
 		// Check if any rule matches this reviewer
 		for _, rule := range rules {
-			if matched, _ := filepath.Match(rule.MatchName, req.From); matched {
+			nameMatched := false
+			titleMatched := false
+
+			// Check if reviewer name matches the pattern, if a pattern is provided
+			if rule.MatchName != "" {
+				if matched, _ := filepath.Match(rule.MatchName, req.From); matched {
+					nameMatched = true
+				}
+			}
+
+			// Check if PR title matches the pattern, if a pattern is provided
+			if rule.MatchTitle != "" && req.PRTitle != "" {
+				if matched, _ := filepath.Match(rule.MatchTitle, req.PRTitle); matched {
+					titleMatched = true
+				}
+			}
+
+			// Apply the rule if either name or title match (or both)
+			// When both patterns are provided, both must match
+			if (rule.MatchName != "" && rule.MatchTitle != "" && nameMatched && titleMatched) ||
+				(rule.MatchName != "" && rule.MatchTitle == "" && nameMatched) ||
+				(rule.MatchName == "" && rule.MatchTitle != "" && titleMatched) {
 				pingReq.Delay = rule.Delay
 				pingReq.Enabled = rule.Enabled
 
@@ -104,6 +127,11 @@ func ParseRules() []Rule {
 					rule.MatchName = matchName
 				}
 
+				// Parse the new matchTitle field from the config
+				if matchTitle, ok := ruleMap["matchtitle"].(string); ok {
+					rule.MatchTitle = matchTitle
+				}
+
 				if delay, ok := ruleMap["delay"].(int); ok {
 					rule.Delay = delay
 				}
@@ -123,7 +151,8 @@ func ParseRules() []Rule {
 						}
 					}
 				}
-				if rule.MatchName != "" { // Only add rules with a valid match pattern
+				// Add rules with a valid match pattern (either matchName or matchTitle)
+				if rule.MatchName != "" || rule.MatchTitle != "" {
 					ruleset = append(ruleset, rule)
 				}
 			}
