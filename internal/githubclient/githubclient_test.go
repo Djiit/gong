@@ -34,6 +34,7 @@ func TestGetPullRequestState(t *testing.T) {
 	testClosedPR(t, client)
 	testMergedPR(t, client)
 	testNonExistentPR(t, client)
+	testDraftPR(t, client)
 }
 
 func createMockServer(t *testing.T) *httptest.Server {
@@ -50,6 +51,8 @@ func handleMockRequest(t *testing.T, w http.ResponseWriter, r *http.Request) {
 		serveClosedPR(t, w)
 	} else if r.Method == "GET" && r.URL.Path == "/repos/testowner/testrepo/pulls/3" {
 		serveMergedPR(t, w)
+	} else if r.Method == "GET" && r.URL.Path == "/repos/testowner/testrepo/pulls/4" {
+		serveDraftPR(t, w)
 	} else {
 		// PR not found
 		w.WriteHeader(http.StatusNotFound)
@@ -92,6 +95,21 @@ func serveMergedPR(t *testing.T, w http.ResponseWriter) {
 		"merged": true,
 		"created_at": "%s",
 		"updated_at": "2023-04-03T12:00:00Z"
+	}`, createdAtTime)))
+	if err != nil {
+		t.Fatalf(writeResponseErrMsg, err)
+	}
+}
+
+func serveDraftPR(t *testing.T, w http.ResponseWriter) {
+	w.Header().Set(contentTypeHeader, jsonContentType)
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(fmt.Sprintf(`{
+		"state": "open",
+		"merged": false,
+		"draft": true,
+		"created_at": "%s",
+		"updated_at": "2023-04-04T12:00:00Z"
 	}`, createdAtTime)))
 	if err != nil {
 		t.Fatalf(writeResponseErrMsg, err)
@@ -151,5 +169,22 @@ func testNonExistentPR(t *testing.T, client *github.Client) {
 		state, err := GetPullRequestState(client, "testowner", "testrepo", "99")
 		assert.Error(t, err)
 		assert.Nil(t, state)
+	})
+}
+
+func testDraftPR(t *testing.T, client *github.Client) {
+	t.Run("Draft PR", func(t *testing.T) {
+		state, err := GetPullRequestState(client, "testowner", "testrepo", "4")
+		assert.NoError(t, err)
+		assert.NotNil(t, state)
+		assert.True(t, state.IsOpen)
+		assert.False(t, state.IsClosed)
+		assert.False(t, state.IsMerged)
+		assert.True(t, state.IsDraft)
+
+		expectedCreatedAt, _ := time.Parse(time.RFC3339, createdAtTime)
+		expectedUpdatedAt, _ := time.Parse(time.RFC3339, "2023-04-04T12:00:00Z")
+		assert.Equal(t, expectedCreatedAt, state.CreatedAt)
+		assert.Equal(t, expectedUpdatedAt, state.UpdatedAt)
 	})
 }

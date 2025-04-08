@@ -31,6 +31,7 @@ type PullRequestState struct {
 	IsOpen    bool
 	IsMerged  bool
 	IsClosed  bool
+	IsDraft   bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -66,6 +67,7 @@ func GetPullRequestState(client *github.Client, owner, repo string, prNumber str
 		IsOpen:    pr.GetState() == "open",
 		IsMerged:  pr.GetMerged(),
 		IsClosed:  pr.GetState() == "closed" && !pr.GetMerged(),
+		IsDraft:   pr.GetDraft(),
 		CreatedAt: pr.GetCreatedAt().Time,
 		UpdatedAt: pr.GetUpdatedAt().Time,
 	}

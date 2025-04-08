@@ -103,6 +103,11 @@ var PingCmd = &cobra.Command{
 			return
 		}
 
+		if prState.IsDraft {
+			log.Info().Msgf("Pull Request #%s is in draft mode. Skipping pinging reviewers.", pr)
+			return
+		}
+
 		log.Debug().Msgf("Pull Request #%s is open. Proceeding with reviewer checks.", pr)
 
 		// Get review requests
