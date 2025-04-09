@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/Djiit/gong/compare/v0.2.0...v0.3.0) (2025-04-09)
+
+
+### Features
+
+* add support for matchTitle. Fixes [#22](https://github.com/Djiit/gong/issues/22) ([6578aac](https://github.com/Djiit/gong/commit/6578aacf932c262d19066406d29c2d21e94ba190))
+* add support for matchTitle. Fixes [#32](https://github.com/Djiit/gong/issues/32) ([58c4572](https://github.com/Djiit/gong/commit/58c4572b32407ad3d991d5a60aa1b6e3e287d00b))
+
+
+### Bug Fixes
+
+* do not ping on draft PRs ([ce7dda9](https://github.com/Djiit/gong/commit/ce7dda92a1c354eedf3435f532fd622c546cfe48))
+
 ## [0.2.0](https://github.com/Djiit/gong/compare/v0.1.5...v0.2.0) (2025-03-31)
 
 
