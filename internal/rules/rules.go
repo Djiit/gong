@@ -18,6 +18,7 @@ var timeNow = time.Now
 type Rule struct {
 	MatchName    string
 	MatchTitle   string
+	MatchAuthor  string // Added for matching PR authors
 	Delay        int
 	Enabled      bool
 	Integrations []ping.Integration // List of integrations for this rule
@@ -51,6 +52,7 @@ func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rule
 		for _, rule := range rules {
 			nameMatched := false
 			titleMatched := false
+			authorMatched := false
 
 			// Check if reviewer name matches the pattern, if a pattern is provided
 			if rule.MatchName != "" {
@@ -66,11 +68,37 @@ func ApplyRules(ctx context.Context, requests []githubclient.ReviewRequest, rule
 				}
 			}
 
-			// Apply the rule if either name or title match (or both)
-			// When both patterns are provided, both must match
-			if (rule.MatchName != "" && rule.MatchTitle != "" && nameMatched && titleMatched) ||
-				(rule.MatchName != "" && rule.MatchTitle == "" && nameMatched) ||
-				(rule.MatchName == "" && rule.MatchTitle != "" && titleMatched) {
+			// Check if PR author matches the pattern, if a pattern is provided
+			log.Debug().Msgf("Checking if PR author %s matches pattern %s", req.PRAuthor, rule.MatchAuthor)
+			if rule.MatchAuthor != "" && req.PRAuthor != "" {
+				log.Debug().Msgf("Checking if PR author %s matches pattern %s", req.PRAuthor, rule.MatchAuthor)
+				if matched, _ := filepath.Match(rule.MatchAuthor, req.PRAuthor); matched {
+					authorMatched = true
+				}
+			}
+
+			// Determine if this rule applies
+			ruleApplies := false
+
+			// All conditions must match if multiple are provided
+			if rule.MatchName != "" && rule.MatchTitle != "" && rule.MatchAuthor != "" {
+				ruleApplies = nameMatched && titleMatched && authorMatched
+			} else if rule.MatchName != "" && rule.MatchTitle != "" {
+				ruleApplies = nameMatched && titleMatched
+			} else if rule.MatchName != "" && rule.MatchAuthor != "" {
+				ruleApplies = nameMatched && authorMatched
+			} else if rule.MatchTitle != "" && rule.MatchAuthor != "" {
+				ruleApplies = titleMatched && authorMatched
+			} else if rule.MatchName != "" {
+				ruleApplies = nameMatched
+			} else if rule.MatchTitle != "" {
+				ruleApplies = titleMatched
+			} else if rule.MatchAuthor != "" {
+				ruleApplies = authorMatched
+			}
+
+			// Apply the rule if it matches
+			if ruleApplies {
 				pingReq.Delay = rule.Delay
 				pingReq.Enabled = rule.Enabled
 
@@ -127,9 +155,14 @@ func ParseRules() []Rule {
 					rule.MatchName = matchName
 				}
 
-				// Parse the new matchTitle field from the config
+				// Parse the matchTitle field from the config
 				if matchTitle, ok := ruleMap["matchtitle"].(string); ok {
 					rule.MatchTitle = matchTitle
+				}
+
+				// Parse the matchAuthor field from the config
+				if matchAuthor, ok := ruleMap["matchauthor"].(string); ok {
+					rule.MatchAuthor = matchAuthor
 				}
 
 				if delay, ok := ruleMap["delay"].(int); ok {
@@ -151,8 +184,8 @@ func ParseRules() []Rule {
 						}
 					}
 				}
-				// Add rules with a valid match pattern (either matchName or matchTitle)
-				if rule.MatchName != "" || rule.MatchTitle != "" {
+				// Add rules with a valid match pattern (either matchName, matchTitle, or matchAuthor)
+				if rule.MatchName != "" || rule.MatchTitle != "" || rule.MatchAuthor != "" {
 					ruleset = append(ruleset, rule)
 				}
 			}

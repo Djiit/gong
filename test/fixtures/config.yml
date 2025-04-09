@@ -32,3 +32,17 @@ rules:
         params:
           channel: "#urgent"
       - type: comment
+      
+  # New matchAuthor rules for matching PR authors
+  - matchAuthor: "critical-contributor"
+    delay: 3600  # 1 hour delay for PRs from critical contributors
+    integrations:
+      - type: slack
+        params:
+          channel: "#critical-reviews"
+          
+  # Combined rule using matchName and matchAuthor
+  - matchName: "senior-*"
+    matchAuthor: "junior-*"
+    delay: 7200  # 2 hours delay for senior developers reviewing PRs from juniors
+    enabled: true
