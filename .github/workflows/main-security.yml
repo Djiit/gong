@@ -13,7 +13,7 @@ jobs:
   sast:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run Report
         uses: bearer/bearer-action@v2
         with:
@@ -21,7 +21,7 @@ jobs:
   sbom:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Create SBOM
         uses: anchore/sbom-action@v0
         with:
